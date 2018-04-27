@@ -1,12 +1,6 @@
-= Neo4j Procedure Template
+= Neo4j Procedure-Simple Linear Regression
 
-Edit: Linear Regression added by Lauren Shin 2/22/18
-
-This project is an example you can use to build Procedures in Neo4j.
-It contains two procedures, for reading and updating a full-text index.
-
-To try this out, simply clone this repository and have a look at the
-source code under https://github.com/neo4j-examples/neo4j-procedure-template/blob/master/src/main/java/example/FullTextIndex.java[`src/main/java/example/FullTextIndex.java`] and the https://github.com/neo4j-examples/neo4j-procedure-template/blob/master/src/test/java/example/LegacyFullTextIndexTest.java[test code] including Test-Server-Setup.
+This project builds from the https://github.com/neo4j-examples/neo4j-procedure-template[procedure template]. It uses Apache Commons Math to build, update, and store linear regression models in Neo4j.
 
 [Note]
 This project requires a Neo4j 3.0.0 snapshot or milestone dependency.

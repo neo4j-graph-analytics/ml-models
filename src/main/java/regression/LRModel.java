@@ -2,14 +2,17 @@ package regression;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.*;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.*;
 import org.neo4j.procedure.UserAggregationUpdate;
+import java.io.*;
 
 public class LRModel {
 
     private static ConcurrentHashMap<String, LRModel> models = new ConcurrentHashMap<>();
     private final String name;
     private State state;
-    SimpleRegression R = new SimpleRegression();
+    SimpleRegression R;
 
 
     public LRModel(String model) {
@@ -17,6 +20,21 @@ public class LRModel {
             throw new IllegalArgumentException("Model " + model + " already exists, please remove it first");
         this.name = model;
         this.state = State.created;
+        this.R = new SimpleRegression();
+        models.put(name, this);
+    }
+
+    public LRModel(String model, SimpleRegression R, String state) {
+        if (models.containsKey(model))
+            throw new IllegalArgumentException("Model " + model + " already exists, please remove it first");
+        this.name = model;
+        switch(state) {
+            case "created": this.state = State.created;
+            case "ready": this.state = State.ready;
+            case "removed": this.state = State.removed;
+            case "unknown": this.state = State.unknown;
+        }
+        this.R = R;
         models.put(name, this);
     }
 
@@ -50,6 +68,17 @@ public class LRModel {
     public static LR.ModelResult removeModel(String model) {
         LRModel existing = models.remove(model);
         return new LR.ModelResult(model, existing == null ? State.unknown : State.removed, 0);
+    }
+
+    public void store(GraphDatabaseService db) {
+        try{ byte[] serializedR = LinearRegression.convertToBytes(R);
+            Map<String, Object> parameters = new HashMap<>();
+            parameters.put("name", name);
+            ResourceIterator<Entity> n = db.execute("MERGE (n:LRModel {name:$name}) RETURN n", parameters).columnAs("n");
+            Entity modelNode = n.next();
+            modelNode.setProperty("state", state.name());
+            modelNode.setProperty("serializedModel", serializedR);}
+        catch (IOException e) { throw new RuntimeException(name + " cannot be serialized."); }
     }
 
     /*protected void initTypes(Map<String, String> types, String output) {

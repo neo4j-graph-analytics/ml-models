@@ -1,12 +1,14 @@
 package regression;
 
 import org.apache.commons.math3.stat.regression.SimpleRegression;
+import org.neo4j.graphdb.Entity;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.*;
 import org.neo4j.procedure.Mode;
 
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -48,13 +50,28 @@ public class LR {
     }
 
     @Procedure(value = "regression.linear.storeModel", mode = Mode.WRITE)
-    public Stream<ModelResult> storeModel(@Name("model") String model, @Name("label") String label) {
+    public Stream<ModelResult> storeModel(@Name("model") String model) {
         LRModel lrModel = LRModel.from(model);
-        SimpleRegression R = lrModel.R;
-        try{ byte[] serializedR = LinearRegression.convertToBytes(R); }
-        catch (IOException e) { throw new RuntimeException(model + " cannot be serialized."); }
-        //TODO: store R
+        lrModel.store(db);
         return Stream.of(lrModel.asResult());
+    }
+
+    @Procedure(value = "regression.linear.createFromStorage", mode = Mode.READ)
+    public Stream<ModelResult> createFromStorage(@Name("model") String model) {
+        Map<String, Object> parameters = new HashMap<>();
+        parameters.put("name", model);
+        Entity modelNode;
+        SimpleRegression R;
+        try {
+            ResourceIterator<Entity> n = db.execute("MATCH (n:LRModel {name:$name}) RETURN " +
+                    "n", parameters).columnAs("n");
+            modelNode = n.next();
+            byte[] m = (byte[]) modelNode.getProperty("serializedModel");
+            R = (SimpleRegression) LinearRegression.convertFromBytes(m);
+        } catch (Exception e) {
+            throw new RuntimeException("no existing model for specified independent and dependent variables and model ID");
+        }
+        return Stream.of(new LRModel(model, R, (String) modelNode.getProperty("state")).asResult());
     }
 
     public static class ModelResult {
@@ -83,6 +100,7 @@ public class LR {
             this.prediction = p;
         }
     }
+
 
 
 }

@@ -3,18 +3,13 @@ package regression;
 import java.util.HashMap;
 import org.junit.Rule;
 import org.junit.Test;
-import org.neo4j.cypher.internal.frontend.v2_3.ast.functions.Has;
 import org.neo4j.driver.v1.*;
 import org.neo4j.harness.junit.Neo4jRule;
-import java.io.*;
 
 import static org.junit.Assert.*;
 import static org.hamcrest.CoreMatchers.equalTo;
 
 import org.apache.commons.math3.stat.regression.SimpleRegression;
-import org.neo4j.unsafe.impl.batchimport.stats.Stat;
-
-import java.util.Optional;
 
 public class LRTest {
 
@@ -42,12 +37,12 @@ public class LRTest {
 
             session.run(createKnownRelationships);
             session.run(createUnknownRelationships);
+            //initialize the model
             session.run("CALL regression.linear.create('work and progress')");
-            StatementResult r0 = session.run("MATCH () - [r:WORKS_FOR] -> () WHERE exists(r.time) AND exists(r.progress) CALL " +
+            //add known data
+            session.run("MATCH () - [r:WORKS_FOR] -> () WHERE exists(r.time) AND exists(r.progress) CALL " +
                     "regression.linear.addData('work and progress', r.time, r.progress) YIELD state RETURN r.time, r.progress, state");
-            while (r0.hasNext()) {
-                Record c0 = r0.next();
-            }
+            //store predictions
             session.run("MATCH () - [r:WORKS_FOR] -> () WHERE exists(r.time) AND NOT exists(r.progress) CALL " +
                     "regression.linear.predict('work and progress', r.time) YIELD prediction SET r.predictedProgress = " +
                     "prediction");
@@ -73,19 +68,21 @@ public class LRTest {
                 assertThat(actualPrediction, equalTo(expectedPrediction));
             }
 
-            //remove data from relationship between nodes 1 and 2
-            StatementResult r1 = session.run("MATCH (:Node {id:1})-[r:WORKS_FOR]->(:Node {id:2}) CALL regression.linear.removeData('work " +
-                    "and progress', r.time, r.progress) YIELD state, N RETURN r.time as time, r.progress as progress, state, N");
-            Record c1 = r1.next();
+            session.run("CALL regression.linear.storeModel('work and progress')");
+            session.run("CALL regression.linear.removeModel('work and progress')");
+            session.run("CALL regression.linear.createFromStorage('work and progress')");
 
+
+            //remove data from relationship between nodes 1 and 2
+            session.run("MATCH (:Node {id:1})-[r:WORKS_FOR]->(:Node {id:2}) CALL regression.linear.removeData('work " +
+                    "and progress', r.time, r.progress) YIELD state, N RETURN r.time as time, r.progress as progress, state, N");
 
             //create a new relationship between nodes 7 and 8
-            StatementResult r2 = session.run("MATCH (n7:Node {id:7}) MERGE (n7)-[:WORKS_FOR {time:6.0, progress:5.870}]->(:Node {id:8})");
+            session.run("MATCH (n7:Node {id:7}) MERGE (n7)-[:WORKS_FOR {time:6.0, progress:5.870}]->(:Node {id:8})");
 
             //add data from new relationship to model
-            StatementResult r3 = session.run("MATCH (:Node {id:7})-[r:WORKS_FOR]->(:Node {id:8}) CALL regression.linear.addData('work " +
+            session.run("MATCH (:Node {id:7})-[r:WORKS_FOR]->(:Node {id:8}) CALL regression.linear.addData('work " +
                     "and progress', r.time, r.progress) YIELD state, N RETURN r.time, r.progress, state, N");
-            Record c3 = r3.next();
 
             //map new model on all relationships with unknown progress
             session.run("MATCH (:Node)-[r:WORKS_FOR]->(:Node) WHERE exists(r.time) AND NOT exists(r.progress) " +
@@ -99,7 +96,6 @@ public class LRTest {
             expected.put(4.0, R.predict(4.0));
             expected.put(5.0, R.predict(5.0));
 
-
             //make sure predicted values are correct
             result = session.run(gatherPredictedValues);
             while (result.hasNext()) {
@@ -110,11 +106,7 @@ public class LRTest {
                 double actualPrediction = actual.get("predictedProgress").asDouble();
 
                 assertThat( actualPrediction, equalTo( expectedPrediction ) );
-
-
             }
-
-
 
         }
     }

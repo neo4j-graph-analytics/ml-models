@@ -1,4 +1,4 @@
-package example;
+package regression;
 import java.util.HashMap;
 import org.junit.Rule;
 import org.junit.Test;

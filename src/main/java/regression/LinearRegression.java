@@ -1,4 +1,4 @@
-package example;
+package regression;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -42,7 +42,7 @@ public class LinearRegression {
 
 
     @UserFunction
-    @Description("example.predict(b, m, x) - uses the regression parameters intercept = b, slope = m, " +
+    @Description("regression.predict(b, m, x) - uses the regression parameters intercept = b, slope = m, " +
             "and returns a predicted y value based on the equation y = m * x + b")
     public Double predict(@Name("intercept") Double intercept, @Name("slope") Double slope, @Name("input")
             Double input) {
@@ -60,7 +60,7 @@ public class LinearRegression {
     public Log log;
 
     //single variable linear regression using node or relationship properties
-    @Procedure(value = "example.simpleRegression", mode = Mode.WRITE)
+    @Procedure(value = "regression.simpleRegression", mode = Mode.WRITE)
     @Description("create a linear regression model using independent and dependent property data from nodes/relationships that have" +
             " the given label and contain both properties. Then store predicted values under the property name " +
             "'newVarName' for nodes/relationships with the same label and known x but no known y property value. " +
@@ -189,7 +189,7 @@ public class LinearRegression {
     }
 
     //Serializes the object into a byte array for storage
-    private byte[] convertToBytes(Object object) throws IOException {
+    static byte[] convertToBytes(Object object) throws IOException {
         try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
         ObjectOutput out = new ObjectOutputStream(bos)) {
             out.writeObject(object);
@@ -198,7 +198,7 @@ public class LinearRegression {
     }
 
     //de serializes the byte array and returns the stored object
-    private Object convertFromBytes(byte[] bytes) throws IOException, ClassNotFoundException {
+    static Object convertFromBytes(byte[] bytes) throws IOException, ClassNotFoundException {
         try (ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
         ObjectInput in = new ObjectInputStream(bis)) {
             return in.readObject();
@@ -211,7 +211,7 @@ public class LinearRegression {
     Model will be serialized and stored in a node with modelID property. MAKE SURE YOUR QUERIES DON'T CONTAIN
     DUPLICATE VALUES OR THE MODEL WILL NOT BE CREATED CORRECTLY
      */
-    @Procedure(value = "example.customRegression", mode = Mode.WRITE)
+    @Procedure(value = "regression.customRegression", mode = Mode.WRITE)
     @Description("Create a linear regression model using the the two data points which result from running the modelQuery." +
             " Then store predicted values on the Entities that result from running the mapQuery.")
     public void customRegression(@Name("model query") String modelQuery, @Name("map query") String mapQuery,
@@ -272,7 +272,7 @@ public class LinearRegression {
 
     }
 
-    @Procedure(value = "example.updateRegression", mode = Mode.WRITE)
+    @Procedure(value = "regression.updateRegression", mode = Mode.WRITE)
     @Description("Update the linear regression model stored in the LinReg node with ID modelID by removing data, adding" +
             " data, and mapping updated predictions as specified by the provided queries.")
     public void updateRegression(@Name("remove query") String removeQuery, @Name("add query") String addQuery, @Name("map query") String mapQuery,

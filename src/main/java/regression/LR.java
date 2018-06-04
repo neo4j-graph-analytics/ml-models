@@ -22,34 +22,36 @@ public class LR {
     public Log log;
 
     @Procedure(value = "regression.linear.create", mode = Mode.READ)
-    @Description("Create a simple linear regression named 'model'.")
+    @Description("Create a simple linear regression named 'model'. Returns a stream containing its name (model), state (state), and " +
+            "number of data points (N).")
     public Stream<ModelResult> create(@Name("model") String model) {
         return Stream.of((new LRModel(model)).asResult());
     }
 
     @Procedure(value = "regression.linear.info", mode = Mode.READ)
-    @Description("Returns a stream of info containing model, state, and N.")
+    @Description("Returns a stream containing the model's name (model), state (state), and number of data points (N).")
     public Stream<ModelResult> info(@Name("model") String model) {
         LRModel lrModel = LRModel.from(model);
         return Stream.of(lrModel.asResult());
     }
 
     @Procedure(value = "regression.linear.stats", mode = Mode.READ)
-    @Description("Returns a stream of info containing intercept, slope, rSquare, and significance.")
+    @Description("Returns a stream containing the model's intercept (intercept), slope (slope), coefficient of determination " +
+            "(rSquare), and significance of the slope (significance).")
     public Stream<StatResult> stat(@Name("model") String model) {
         LRModel lrModel = LRModel.from(model);
         return Stream.of(lrModel.stats());
     }
 
     @Procedure(value = "regression.linear.add", mode = Mode.READ)
-    @Description("Adds a single data point to 'model'.")
+    @Description("Void procedure which adds a single data point to 'model'.")
     public void add(@Name("model") String model, @Name("given") double given, @Name("expected") double expected) {
         LRModel lrModel = LRModel.from(model);
         lrModel.add(given, expected);
     }
 
     @Procedure(value = "regression.linear.addM", mode = Mode.READ)
-    @Description("Adds multiple data points (given[i], expected[i]) to 'model'.")
+    @Description("Void procedure which adds multiple data points (given[i], expected[i]) to 'model'.")
     public void addM(@Name("model") String model, @Name("given") List<Double> given, @Name("expected") List<Double> expected) {
         LRModel lrModel = LRModel.from(model);
         if (given.size() != expected.size()) throw new IllegalArgumentException("Lengths of the two data lists are unequal.");
@@ -59,34 +61,36 @@ public class LR {
     }
 
     @Procedure(value = "regression.linear.remove", mode = Mode.READ)
-    @Description("Removes a single data point from 'model'.")
+    @Description("Void procedure which removes a single data point from 'model'.")
     public void remove(@Name("model") String model, @Name("given") double given, @Name("expected") double expected) {
         LRModel lrModel = LRModel.from(model);
         lrModel.removeData(given, expected);
     }
 
     @Procedure(value = "regression.linear.delete", mode = Mode.READ)
-    @Description("Deletes 'model' from storage.")
+    @Description("Deletes 'model' from storage. Returns a stream containing the model's name (model), state (state), and " +
+            "number of data points (N).")
     public Stream<ModelResult> delete(@Name("model") String model) {
         return Stream.of(LRModel.removeModel(model));
     }
 
     @UserFunction(value = "regression.linear.predict")
-    @Description("Evaluates the model at 'given'.")
+    @Description("Function which returns a single double which is 'model' evaluated at the point 'given'.")
     public double predict(@Name("mode") String model, @Name("given") double given) {
         LRModel lrModel = LRModel.from(model);
         return lrModel.predict(given);
     }
 
     @UserFunction(value = "regression.linear.serialize")
-    @Description("Serializes the model's Java object and returns the byte[] serialization.")
+    @Description("Function which serializes the model's Java object and returns the byte[] serialization.")
     public Object serialize(@Name("model") String model) {
         LRModel lrModel = LRModel.from(model);
         return lrModel.serialize();
     }
 
     @Procedure(value = "regression.linear.load", mode = Mode.READ)
-    @Description("Loads the memory stored in byte[] data into memory with name 'model'.")
+    @Description("Loads the model stored in data into the procedure's memory under the name 'model'. 'data' must be a byte array. " +
+            "Returns a stream containing the model's name (model), state (state), and number of data points (N).")
     public Stream<ModelResult> load(@Name("model") String model, @Name("data") Object data) {
         SimpleRegression R;
         try { R = (SimpleRegression) convertFromBytes((byte[]) data); }

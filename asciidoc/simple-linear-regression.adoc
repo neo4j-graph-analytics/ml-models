@@ -13,7 +13,7 @@ At the core of linear regression is the method of least squares. In this method,
 == Uses-cases
 
 // tag::use-case[]
-In simple linear regression, both the independent and dependent variables must be numeric. The dependent variable (`y`) can then be expressed in terms of the independent variable (`x`) using the two line parameters slope (`m`) and intercept (`b`) with the equation `y = m*x + b`. For these approximations to be meaningful, the dependent variable should take continuous values. The relationship between any two variables satisfying these conditions can be analyzed with simple linear regression. However, the model will only be successful for linearly related data. Some common examples include:
+In simple linear regression, both the independent and dependent variables must be numeric. The dependent variable (`y`) can then be expressed in terms of the independent variable (`x`) using the two line parameters slope (`m`) and intercept (`b`) with the equation `y = m * x + b`. For these approximations to be meaningful, the dependent variable should take continuous values. The relationship between any two variables satisfying these conditions can be analyzed with simple linear regression. However, the model will only be successful for linearly related data. Some common examples include:
 
 * Predicting housing prices with square footage, number of bedrooms, number of bathrooms, etc.
 * Analyzing sales of a product using pricing or performance information
@@ -23,12 +23,12 @@ In simple linear regression, both the independent and dependent variables must b
 == Constraints
 
 // tag::constraints[]
-Because simple linear regression is so straightforward, it can be used with any numeric data pair. The real question is how well the best model fits the data. There are several measurements which attempt to quantify the success of the model. For example, the coefficient of determination (r^2^) is the proportion of the variance in the dependent variable that is predictable from the independent variable. A coefficient r^2^ = 1 indicates that the variance in the dependent variable is entirely predictable from the independent variable (and thus the model is perfect).
+Because simple linear regression is so straightforward, it can be used with any numeric data pair. The real question is how well the best model fits the data. There are several measurements which attempt to quantify the success of the model. For example, the coefficient of determination (`r^2^`) is the proportion of the variance in the dependent variable that is predictable from the independent variable. A coefficient `r^2^ = 1` indicates that the variance in the dependent variable is entirely predictable from the independent variable (and thus the model is perfect).
 // end::use-case[]
 
 == Example
 
-Let's look at a straightforward example--predicting Airbnb listing prices using the listing's number of bedrooms.
+Let's look at a straightforward example--predicting Airbnb listing prices using the listing's number of bedrooms. Run `:play http://guides.neo4j.com/listings` and follow the import statements to load Will Lyon's Airbnb graph.
 
 .First initialize the model
 [source,cypher]
@@ -39,7 +39,7 @@ CALL regression.linear.create('airbnb prices')
 .Then add data point by point
 [source,cypher]
 ----
-MATCH (list:Listing)-[:IN_NEIGHBORHOOD]->(:Neighborhood{neighborhood_id:'78752'})
+MATCH (list:Listing)-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:'78752'})
 WHERE exists(list.bedrooms)
     AND exists(list.price)
     AND NOT exists(list.added) OR list.added = false
@@ -51,7 +51,7 @@ RETURN list.listing_id
 .OR add multiple data points at once
 [source,cypher]
 ----
-MATCH (list:Listing)-[:IN_NEIGHBORHOOD]->(:Neighborhood{neighborhood_id:'78752'})
+MATCH (list:Listing)-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:'78752'})
 WHERE exists(list.bedrooms)
     AND exists(list.price)
     AND NOT exists(list.added) OR list.added = false
@@ -70,7 +70,7 @@ RETURN regression.linear.predict('airbnb prices', 4)
 .Or make and store many predictions
 [source,cypher]
 ----
-MATCH (list:Listing)-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:’78752’})
+MATCH (list:Listing)-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:'78752'})
 WHERE exists(list.bedrooms) AND NOT exists(list.price)
 SET list.predicted_price = regression.linear.predict(list.bedrooms)
 ----
@@ -78,25 +78,25 @@ SET list.predicted_price = regression.linear.predict(list.bedrooms)
 .You can remove data
 [source,cypher]
 ----
-MATCH (list:Listing {listing_id:2467149})-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:’78752’})
-CALL regression.linear.remove(‘airbnb prices’, list.bedrooms, list.price)
+MATCH (list:Listing {listing_id:2467149})-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:'78752'})
+CALL regression.linear.remove('airbnb prices', list.bedrooms, list.price)
 SET list.added = false
 ----
 
 .Add some data from a nearby neighborhood
 [source,cypher]
 ----
-MATCH (list:Listing)-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:’78753’})
+MATCH (list:Listing)-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:'78753'})
 WHERE exists(list.bedrooms)
     AND exists(list.price)
     AND NOT exists(list.added) OR list.added = false
-CALL regression.linear.add(‘airbnb prices’, list.bedrooms, list.price) RETURN list
+CALL regression.linear.add('airbnb prices', list.bedrooms, list.price) RETURN list
 ----
 
 .Check out the number of data points in your model
 [source,cypher]
 ----
-CALL regression.linear.info(‘airbnb prices’)
+CALL regression.linear.info('airbnb prices')
 YIELD model, state, N
 RETURN model, state, N
 ----
@@ -104,7 +104,7 @@ RETURN model, state, N
 .And the statistics
 [source,cypher]
 ----
-CALL regression.linear.stats(‘airbnb prices’)
+CALL regression.linear.stats('airbnb prices')
 YIELD intercept, slope, rSquare, significance
 RETURN intercept, slope, rSquare, significance
 ----
@@ -112,15 +112,15 @@ RETURN intercept, slope, rSquare, significance
 .Make sure that before shutting down the database, you store the model in the graph or externally
 [source,cypher]
 ----
-MERGE (m:ModelNode{model: ‘airbnb prices’})
-SET m.data = regression.linear.serialize(‘airbnb prices’)
+MERGE (m:ModelNode {model: 'airbnb prices'})
+SET m.data = regression.linear.serialize('airbnb prices')
 RETURN m
 ----
 
 .Delete the model
 [source,cypher]
 ----
-CALL regression.linear.delete(‘airbnb prices’)
+CALL regression.linear.delete('airbnb prices')
 YIELD model, state, N
 RETURN model, state, N
 ----
@@ -128,8 +128,8 @@ RETURN model, state, N
 .And then when you restart the database, load the model from the graph back into the procedure
 [source,cypher]
 ----
-MATCH (m:ModelNode{model: ‘airbnb prices’})
-CALL regression.linear.load(‘airbnb prices’, m.data)
+MATCH (m:ModelNode {model: 'airbnb prices'})
+CALL regression.linear.load('airbnb prices', m.data)
 ----
 
 Now the model is ready for further data changes and predictions!

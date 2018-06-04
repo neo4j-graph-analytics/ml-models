@@ -1,0 +1,121 @@
+= Simple Linear Regression
+:stem: latexmath
+
+// tag::introduction[]
+Regression is a statistical tool for investigating the relationships between variables. Simple linear regression is the simplest form of regression; it creates a linear model for the relationship between the dependent variable and a single independent variable. Visually, imagine drawing a trendline on the scatter plot of two variables that appear to have a linear relationship. The model can be expressed with the two parameters of its line: slope and intercept. This is one of the most popular tools in statistics, and it is frequently used as a predictor for machine learning.
+// end::introduction[]
+
+== Explanation and history
+
+// tag::explanation[]
+At the core of linear regression is the method of least squares. In this method, the linear trendline is chosen which minimizes the sum of every data point's squared residual (deviation from the model). The method of least squares was independently discovered by Carl Friedrich-Gauss and Adrien-Marie Legendre in the early 19th century. The linear regression methods used today can be primarily attributed to the work of R.A. Fisher in the 1920s.
+// end::explanation[]
+
+== Uses-cases
+
+// tag::use-case[]
+In simple linear regression, both the independent and dependent variables must be numeric. The dependent variable (stem:[y]) can then be expressed in terms of the independent variable (stem:[x]) using the two line parameters slope (stem:[m]) and intercept (stem:[b]) with the equation stem:[y = m*x + b]. For these approximations to be meaningful, the dependent variable should take continuous values. The relationship between any two variables satisfying these conditions can be analyzed with simple linear regression. However, the model will only be successful for linearly related data. Some common examples include:
+* Predicting housing prices with square footage, number of bedrooms, number of bathrooms, etc.
+* Analyzing sales of a product using pricing or performance information
+* Calculating causal relationships between parameters in biological systems
+// end::use-case[]
+
+== Constraints
+
+// tag::constraints[]
+Because simple linear regression is so straightforward, it can be used with any numeric data pair. The real question is how well the best model fits the data. There are several measurements which attempt to quantify the success of the model. For example, the coefficient of determination (stem:[r^2]) is the proportion of the variance in the dependent variable that is predictable from the independent variable. A coefficient stem:[r^2 = 1] indicates that the variance in the dependent variable is entirely predictable from the independent variable (and thus the model is perfect).
+// end::use-case[]
+
+== Example
+
+Let's look at a straightforward example--predicting Airbnb listing prices using the listing's number of bedrooms.
+
+.First initialize the model
+[source,cypher]
+----
+include::scripts/simple-linear-regression.cypher[tag=initialize]
+----
+
+.Then add data point by point
+[source,cypher]
+----
+include::scripts/simple-linear-regression.cypher[tag=add]
+----
+
+.OR add multiple data points at once
+[source,cypher]
+----
+include::scripts/simple-linear-regression.cypher[tag=addM]
+----
+
+.Next predict price for a four-bedroom listing
+[source,cypher]
+----
+include::scripts/simple-linear-regression.cypher[tag=predict]
+----
+
+.Or make and store many predictions
+[source,cypher]
+----
+include::scripts/simple-linear-regression.cypher[tag=predict-and-store]
+----
+
+.You can remove data
+[source,cypher]
+----
+include::scripts/simple-linear-regression.cypher[tag=remove]
+----
+
+.Add some data from a nearby neighborhood
+[source,cypher]
+----
+include::scripts/simple-linear-regression.cypher[tag=add-more]
+----
+
+.Check out the number of data points in your model
+[source,cypher]
+----
+include::scripts/simple-linear-regression.cypher[tag=info]
+----
+
+.And the statistics
+[source,cypher]
+----
+include::scripts/simple-linear-regression.cypher[tag=stats]
+----
+
+.Make sure that before shutting down the database, you store the model in the graph or externally
+[source,cypher]
+----
+include::scripts/simple-linear-regression.cypher[tag=serialize]
+----
+
+.Delete the model
+[source,cypher]
+----
+include::scripts/simple-linear-regression.cypher[tag=delete]
+----
+
+.And then when you restart the database, load the model from the graph back into the procedure
+[source,cypher]
+----
+include::scripts/simple-linear-regression.cypher[tag=load]
+----
+
+Now the model is ready for further data changes and predictions!
+
+== Syntax
+
+// tag::syntax[]
+
+If your queries return duplicate values (eg: both directions of the same relationship) then data from the same observation may be added to the model multiple times. This will make your model less accurate. It is recommended that you be careful with queries (eg: specify direction of relationship) or store somewhere in relevant nodes/relationships whether this data has been added to the model. This way you can be sure to select relevant data points which have not yet been added to the model.
+
+// end::syntax[]
+
+== References
+
+// tag::references[]
+* https://priceonomics.com/the-discovery-of-statistical-regression/
+* https://en.wikipedia.org/wiki/Regression_analysis
+* https://dzone.com/articles/decision-trees-vs-clustering-algorithms-vs-linear
+// end::references[]

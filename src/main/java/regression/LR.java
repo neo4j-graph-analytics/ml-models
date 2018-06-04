@@ -7,6 +7,8 @@ import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.*;
 import org.neo4j.procedure.Mode;
+import org.neo4j.unsafe.impl.batchimport.cache.ByteArray;
+import sun.java2d.pipe.SpanShapeRenderer;
 
 import java.io.*;
 import java.util.*;
@@ -20,58 +22,78 @@ public class LR {
     public Log log;
 
     @Procedure(value = "regression.linear.create", mode = Mode.READ)
+    @Description("Create a simple linear regression named 'model'.")
     public Stream<ModelResult> create(@Name("model") String model) {
         return Stream.of((new LRModel(model)).asResult());
     }
 
-    @Procedure(value = "regression.linear.addData", mode = Mode.READ)
-    public Stream<ModelResult> addData(@Name("model") String model, @Name("given") double given, @Name("expected") double expected) {
+    @Procedure(value = "regression.linear.info", mode = Mode.READ)
+    @Description("Returns a stream of info containing model, state, and N.")
+    public Stream<ModelResult> info(@Name("model") String model) {
+        LRModel lrModel = LRModel.from(model);
+        return Stream.of(lrModel.asResult());
+    }
+
+    @Procedure(value = "regression.linear.stats", mode = Mode.READ)
+    @Description("Returns a stream of info containing intercept, slope, rSquare, and significance.")
+    public Stream<StatResult> stat(@Name("model") String model) {
+        LRModel lrModel = LRModel.from(model);
+        return Stream.of(lrModel.stats());
+    }
+
+    @Procedure(value = "regression.linear.add", mode = Mode.READ)
+    @Description("Adds a single data point to 'model'.")
+    public void add(@Name("model") String model, @Name("given") double given, @Name("expected") double expected) {
         LRModel lrModel = LRModel.from(model);
         lrModel.add(given, expected);
-        return Stream.of(lrModel.asResult());
     }
 
-    @Procedure(value = "regression.linear.removeData", mode = Mode.READ)
-    public Stream<ModelResult> removeData(@Name("model") String model, @Name("given") double given, @Name("expected") double expected) {
+    @Procedure(value = "regression.linear.addM", mode = Mode.READ)
+    @Description("Adds multiple data points (given[i], expected[i]) to 'model'.")
+    public void addM(@Name("model") String model, @Name("given") List<Double> given, @Name("expected") List<Double> expected) {
+        LRModel lrModel = LRModel.from(model);
+        if (given.size() != expected.size()) throw new IllegalArgumentException("Lengths of the two data lists are unequal.");
+        for (int i = 0; i < given.size(); i++) {
+            lrModel.add(given.get(i), expected.get(i));
+        }
+    }
+
+    @Procedure(value = "regression.linear.remove", mode = Mode.READ)
+    @Description("Removes a single data point from 'model'.")
+    public void remove(@Name("model") String model, @Name("given") double given, @Name("expected") double expected) {
         LRModel lrModel = LRModel.from(model);
         lrModel.removeData(given, expected);
-        return Stream.of(lrModel.asResult());
     }
 
-    @Procedure(value = "regression.linear.removeModel", mode = Mode.READ)
-    public Stream<ModelResult> removeModel(@Name("model") String model) {
+    @Procedure(value = "regression.linear.delete", mode = Mode.READ)
+    @Description("Deletes 'model' from storage.")
+    public Stream<ModelResult> delete(@Name("model") String model) {
         return Stream.of(LRModel.removeModel(model));
     }
 
-    @Procedure(value = "regression.linear.predict", mode = Mode.READ)
-    public Stream<PredictResult> predict(@Name("mode") String model, @Name("given") double given) {
+    @UserFunction(value = "regression.linear.predict")
+    @Description("Evaluates the model at 'given'.")
+    public double predict(@Name("mode") String model, @Name("given") double given) {
         LRModel lrModel = LRModel.from(model);
-        return Stream.of(lrModel.predict(given));
+        return lrModel.predict(given);
     }
 
-    @Procedure(value = "regression.linear.storeModel", mode = Mode.WRITE)
-    public Stream<ModelResult> storeModel(@Name("model") String model) {
+    @UserFunction(value = "regression.linear.serialize")
+    @Description("Serializes the model's Java object and returns the byte[] serialization.")
+    public Object serialize(@Name("model") String model) {
         LRModel lrModel = LRModel.from(model);
-        lrModel.store(db);
-        return Stream.of(lrModel.asResult());
+        return lrModel.serialize();
     }
 
-    @Procedure(value = "regression.linear.createFromStorage", mode = Mode.READ)
-    public Stream<ModelResult> createFromStorage(@Name("model") String model) {
-        Map<String, Object> parameters = new HashMap<>();
-        parameters.put("name", model);
-        Entity modelNode;
+    @Procedure(value = "regression.linear.load", mode = Mode.READ)
+    @Description("Loads the memory stored in byte[] data into memory with name 'model'.")
+    public Stream<ModelResult> load(@Name("model") String model, @Name("data") Object data) {
         SimpleRegression R;
-        try {
-            ResourceIterator<Entity> n = db.execute("MATCH (n:LRModel {name:$name}) RETURN " +
-                    "n", parameters).columnAs("n");
-            modelNode = n.next();
-            byte[] m = (byte[]) modelNode.getProperty("serializedModel");
-            R = (SimpleRegression) LinearRegression.convertFromBytes(m);
-        } catch (Exception e) {
-            throw new RuntimeException("no existing model for specified independent and dependent variables and model ID");
+        try { R = (SimpleRegression) convertFromBytes((byte[]) data); }
+        catch (Exception e) {
+            throw new RuntimeException("invalid data");
         }
-        return Stream.of(new LRModel(model, R, (String) modelNode.getProperty("state")).asResult());
+        return Stream.of((new LRModel(model, R)).asResult());
     }
 
     public static class ModelResult {
@@ -94,12 +116,37 @@ public class LR {
         }
     }
 
-    public static class PredictResult {
-        public final double prediction;
-        public PredictResult(double p) {
-            this.prediction = p;
+    public static class StatResult {
+        public final double intercept;
+        public final double slope;
+        public final double rSquare;
+        public final double significance;
+
+        public StatResult(double intercept, double slope, double rSquare, double significance) {
+            this.intercept = intercept;
+            this.slope = slope;
+            this.rSquare = rSquare;
+            this.significance = significance;
         }
     }
+
+    //Serializes the object into a byte array for storage
+    public static byte[] convertToBytes(Object object) throws IOException {
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+             ObjectOutput out = new ObjectOutputStream(bos)) {
+            out.writeObject(object);
+            return bos.toByteArray();
+        }
+    }
+
+    //de serializes the byte array and returns the stored object
+    public static Object convertFromBytes(byte[] bytes) throws IOException, ClassNotFoundException {
+        try (ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+             ObjectInput in = new ObjectInputStream(bis)) {
+            return in.readObject();
+        }
+    }
+
 
 
 

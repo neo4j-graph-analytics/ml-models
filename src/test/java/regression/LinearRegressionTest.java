@@ -31,7 +31,7 @@ public class LinearRegressionTest {
              Session session = driver.session()) {
 
             Double result = session
-                    .run("RETURN example.predict(3.9, 0.453, 2) AS result")
+                    .run("RETURN regression.predict(3.9, 0.453, 2) AS result")
                     .single().get("result").asDouble();
 
             assertThat(result, equalTo(0.453*2 + 3.9));
@@ -46,7 +46,7 @@ public class LinearRegressionTest {
 
             session.run("CREATE (:node {time:1.0, progress:1.345}), (:node {time:2.0, progress:2.596}), " +
                     "(:node {time:3.0, progress:3.259}), (:node {time:4.0}), (:node {time:5.0})");
-            session.run("CALL example.simpleRegression('node', 'time', 'progress', 'predictedProgress', 'node')");
+            session.run("CALL regression.simpleRegression('node', 'time', 'progress', 'predictedProgress', 'node')");
             StatementResult result = session.run("MATCH (n:node) WHERE exists(n.predictedProgress) RETURN n.time as time, n.predictedProgress as predictedProgress");
 
             SimpleRegression R = new SimpleRegression();
@@ -107,7 +107,7 @@ public class LinearRegressionTest {
 
             session.run(createKnownRelationships);
             session.run(createUnknownRelationships);
-            session.run("CALL example.simpleRegression('WORKS_FOR', 'time', 'progress', 'predictedProgress', 'relationship')");
+            session.run("CALL regression.simpleRegression('WORKS_FOR', 'time', 'progress', 'predictedProgress', 'relationship')");
             StatementResult result = session.run(gatherPredictedValues);
 
             SimpleRegression R = new SimpleRegression();
@@ -164,7 +164,7 @@ public class LinearRegressionTest {
             parameters.put("modelQuery", modelQuery);
             parameters.put("mapQuery", mapQuery);
 
-            session.run("CALL example.customRegression($modelQuery, $mapQuery, 'predictedProgress', 1)", parameters);
+            session.run("CALL regression.customRegression($modelQuery, $mapQuery, 'predictedProgress', 1)", parameters);
 
             StatementResult result = session.run(gatherPredictedValues);
 
@@ -226,12 +226,12 @@ public class LinearRegressionTest {
             parameters.put("modelQuery", modelQuery);
             parameters.put("mapQuery", mapQuery);
 
-            session.run("CALL example.customRegression($modelQuery, $mapQuery, 'predictedProgress', 1)", parameters);
+            session.run("CALL regression.customRegression($modelQuery, $mapQuery, 'predictedProgress', 1)", parameters);
 
             //remove data from relationship between nodes 1 and 2
             String removeQuery = "MATCH (:Node {id:1})-[r:WORKS_FOR]->(:Node {id:2}) RETURN r.time as time, r.progress as progress";
             parameters.put("removeQuery", removeQuery);
-            session.run("CALL example.updateRegression($removeQuery, '', '', 'predictedProgress', 1)", parameters);
+            session.run("CALL regression.updateRegression($removeQuery, '', '', 'predictedProgress', 1)", parameters);
 
             //create a new relationship between nodes 7 and 8
             session.run("MATCH (n7:Node {id:7}) MERGE (n7)-[:WORKS_FOR {time:6.0, progress:5.870}]->(:Node {id:8})", parameters);
@@ -239,10 +239,10 @@ public class LinearRegressionTest {
             //add data from new relationship to model
             String updateQuery = "MATCH (:Node {id:7})-[r:WORKS_FOR]->(:Node {id:8}) RETURN r.time as time, r.progress as progress";
             parameters.put("updateQuery", updateQuery);
-            session.run("CALL example.updateRegression('', $updateQuery, '', 'predictedProgress', 1)", parameters);
+            session.run("CALL regression.updateRegression('', $updateQuery, '', 'predictedProgress', 1)", parameters);
 
             //map new model on all relationships with unknown progress
-            session.run("CALL example.updateRegression('', '', $mapQuery, 'predictedProgress', 1)", parameters);
+            session.run("CALL regression.updateRegression('', '', $mapQuery, 'predictedProgress', 1)", parameters);
 
             //replicate the creation and updates of the model
             SimpleRegression R = new SimpleRegression();

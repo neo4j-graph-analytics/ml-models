@@ -24,17 +24,20 @@ public class LRModel {
         models.put(name, this);
     }
 
-    public LRModel(String model, SimpleRegression R, String state) {
+    public LRModel(String model, SimpleRegression R) {
         if (models.containsKey(model))
             throw new IllegalArgumentException("Model " + model + " already exists, please remove it first");
         this.name = model;
-        switch(state) {
-            case "created": this.state = State.created;
-            case "ready": this.state = State.ready;
-            case "removed": this.state = State.removed;
-            case "unknown": this.state = State.unknown;
+        if (R == null) {
+            this.R = new SimpleRegression();
+            this.state = State.created;
+        } else {
+            this.R = R;
+            if (R.getN() < 2)
+                this.state = State.created;
+            else
+                this.state = State.ready;
         }
-        this.R = R;
         models.put(name, this);
     }
 
@@ -42,6 +45,9 @@ public class LRModel {
         LRModel model = models.get(name);
         if (model != null) return model;
         throw new IllegalArgumentException("No valid LR-Model " + name);
+    }
+    public LR.StatResult stats() {
+        return new LR.StatResult(R.getIntercept(), R.getSlope(), R.getRSquare(), R.getSignificance());
     }
 
     public void add(double given, double expected) {
@@ -51,9 +57,9 @@ public class LRModel {
         }
     }
 
-    public LR.PredictResult predict(double given) {
+    public double predict(double given) {
         if (this.state == State.ready)
-            return new LR.PredictResult(R.predict(given));
+            return R.predict(given);
         throw new IllegalArgumentException("Not enough data in model to predict yet");
     }
 
@@ -65,20 +71,14 @@ public class LRModel {
         }
     }
 
-    public static LR.ModelResult removeModel(String model) {
-        LRModel existing = models.remove(model);
-        return new LR.ModelResult(model, existing == null ? State.unknown : State.removed, 0);
+    public byte[] serialize() {
+        try { return LR.convertToBytes(R); }
+        catch (IOException e) { throw new RuntimeException(name + " cannot be serialized."); }
     }
 
-    public void store(GraphDatabaseService db) {
-        try{ byte[] serializedR = LinearRegression.convertToBytes(R);
-            Map<String, Object> parameters = new HashMap<>();
-            parameters.put("name", name);
-            ResourceIterator<Entity> n = db.execute("MERGE (n:LRModel {name:$name}) RETURN n", parameters).columnAs("n");
-            Entity modelNode = n.next();
-            modelNode.setProperty("state", state.name());
-            modelNode.setProperty("serializedModel", serializedR);}
-        catch (IOException e) { throw new RuntimeException(name + " cannot be serialized."); }
+    public static LR.ModelResult removeModel(String model) {
+        LRModel existing = models.remove(model);
+        return new LR.ModelResult(model, existing == null ? State.unknown : State.removed, existing == null ? 0 : existing.R.getN());
     }
 
     /*protected void initTypes(Map<String, String> types, String output) {
@@ -113,7 +113,7 @@ public class LRModel {
     public enum State {created, ready, removed, unknown}
 
     public LR.ModelResult asResult() {
-        LR.ModelResult result = new LR.ModelResult(this.name, this.state, R.getN());
+        LR.ModelResult result = new LR.ModelResult(this.name, this.state, this.R.getN());
         return result;
     }
 

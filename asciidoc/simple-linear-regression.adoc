@@ -1,7 +1,7 @@
 = Simple Linear Regression
 
 // tag::introduction[]
-Regression is a statistical tool for investigating the relationships between variables. Simple linear regression is the simplest form of regression; it creates a linear model for the relationship between the dependent variable and a single independent variable. Visually, simple linear regression "draws" a trendline on the scatter plot of two variables that best approximates the variables' linear relationship. The model can be expressed with the two parameters of its line: slope and intercept. This is one of the most popular tools in statistics, and it is frequently used as a predictor for machine learning.
+Regression is a statistical tool for investigating the relationships between variables. Simple linear regression is the simplest form of regression; it creates a linear model for the relationship between the dependent variable and a single independent variable. Visually, simple linear regression "draws" a trend line on the scatter plot of two variables that best approximates their linear relationship. The model can be expressed with the two parameters of its line: slope and intercept. This is one of the most popular tools in statistics, and it is frequently used as a predictor for machine learning.
 // end::introduction[]
 
 == Explanation and history
@@ -14,6 +14,7 @@ At the core of linear regression is the method of least squares. In this method,
 
 // tag::use-case[]
 In simple linear regression, both the independent and dependent variables must be numeric. The dependent variable (`y`) can then be expressed in terms of the independent variable (`x`) using the two line parameters slope (`m`) and intercept (`b`) with the equation `y = m*x + b`. For these approximations to be meaningful, the dependent variable should take continuous values. The relationship between any two variables satisfying these conditions can be analyzed with simple linear regression. However, the model will only be successful for linearly related data. Some common examples include:
+
 * Predicting housing prices with square footage, number of bedrooms, number of bathrooms, etc.
 * Analyzing sales of a product using pricing or performance information
 * Calculating causal relationships between parameters in biological systems
@@ -40,8 +41,8 @@ CALL regression.linear.create('airbnb prices')
 ----
 MATCH (list:Listing)-[:IN_NEIGHBORHOOD]->(:Neighborhood{neighborhood_id:'78752'})
 WHERE exists(list.bedrooms)
-  AND exists(list.price)
-  AND NOT exists(list.added) OR list.added = false
+    AND exists(list.price)
+    AND NOT exists(list.added) OR list.added = false
 CALL regression.linear.add('airbnb prices', list.bedrooms, list.price)
 SET list.added = true
 RETURN list.listing_id
@@ -52,8 +53,8 @@ RETURN list.listing_id
 ----
 MATCH (list:Listing)-[:IN_NEIGHBORHOOD]->(:Neighborhood{neighborhood_id:'78752'})
 WHERE exists(list.bedrooms)
-  AND exists(list.price)
-  AND NOT exists(list.added) OR list.added = false
+    AND exists(list.price)
+    AND NOT exists(list.added) OR list.added = false
 SET list.added = true
 WITH collect(list.bedrooms) AS bedrooms, collect(list.price) AS prices
 CALL regression.linear.addM('airbnb prices', bedrooms, prices)
@@ -87,8 +88,8 @@ SET list.added = false
 ----
 MATCH (list:Listing)-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:’78753’})
 WHERE exists(list.bedrooms)
-AND exists(list.price)
-AND NOT exists(list.added) OR list.added = false
+    AND exists(list.price)
+    AND NOT exists(list.added) OR list.added = false
 CALL regression.linear.add(‘airbnb prices’, list.bedrooms, list.price) RETURN list
 ----
 

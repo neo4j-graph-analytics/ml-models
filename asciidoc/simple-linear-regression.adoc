@@ -1,20 +1,19 @@
 = Simple Linear Regression
-:stem: latexmath
 
 // tag::introduction[]
-Regression is a statistical tool for investigating the relationships between variables. Simple linear regression is the simplest form of regression; it creates a linear model for the relationship between the dependent variable and a single independent variable. Visually, imagine drawing a trendline on the scatter plot of two variables that appear to have a linear relationship. The model can be expressed with the two parameters of its line: slope and intercept. This is one of the most popular tools in statistics, and it is frequently used as a predictor for machine learning.
+Regression is a statistical tool for investigating the relationships between variables. Simple linear regression is the simplest form of regression; it creates a linear model for the relationship between the dependent variable and a single independent variable. Visually, simple linear regression "draws" a trendline on the scatter plot of two variables that best approximates the variables' linear relationship. The model can be expressed with the two parameters of its line: slope and intercept. This is one of the most popular tools in statistics, and it is frequently used as a predictor for machine learning.
 // end::introduction[]
 
 == Explanation and history
 
 // tag::explanation[]
-At the core of linear regression is the method of least squares. In this method, the linear trendline is chosen which minimizes the sum of every data point's squared residual (deviation from the model). The method of least squares was independently discovered by Carl Friedrich-Gauss and Adrien-Marie Legendre in the early 19th century. The linear regression methods used today can be primarily attributed to the work of R.A. Fisher in the 1920s.
+At the core of linear regression is the method of least squares. In this method, the linear trend line is chosen which minimizes the sum of every data point's squared residual (deviation from the model). The method of least squares was independently discovered by Carl Friedrich-Gauss and Adrien-Marie Legendre in the early 19th century. The linear regression methods used today can be primarily attributed to the work of R.A. Fisher in the 1920s.
 // end::explanation[]
 
 == Uses-cases
 
 // tag::use-case[]
-In simple linear regression, both the independent and dependent variables must be numeric. The dependent variable (stem:[y]) can then be expressed in terms of the independent variable (stem:[x]) using the two line parameters slope (stem:[m]) and intercept (stem:[b]) with the equation stem:[y = m*x + b]. For these approximations to be meaningful, the dependent variable should take continuous values. The relationship between any two variables satisfying these conditions can be analyzed with simple linear regression. However, the model will only be successful for linearly related data. Some common examples include:
+In simple linear regression, both the independent and dependent variables must be numeric. The dependent variable (`y`) can then be expressed in terms of the independent variable (`x`) using the two line parameters slope (`m`) and intercept (`b`) with the equation `y = m*x + b`. For these approximations to be meaningful, the dependent variable should take continuous values. The relationship between any two variables satisfying these conditions can be analyzed with simple linear regression. However, the model will only be successful for linearly related data. Some common examples include:
 * Predicting housing prices with square footage, number of bedrooms, number of bathrooms, etc.
 * Analyzing sales of a product using pricing or performance information
 * Calculating causal relationships between parameters in biological systems
@@ -23,7 +22,7 @@ In simple linear regression, both the independent and dependent variables must b
 == Constraints
 
 // tag::constraints[]
-Because simple linear regression is so straightforward, it can be used with any numeric data pair. The real question is how well the best model fits the data. There are several measurements which attempt to quantify the success of the model. For example, the coefficient of determination (stem:[r^2]) is the proportion of the variance in the dependent variable that is predictable from the independent variable. A coefficient stem:[r^2 = 1] indicates that the variance in the dependent variable is entirely predictable from the independent variable (and thus the model is perfect).
+Because simple linear regression is so straightforward, it can be used with any numeric data pair. The real question is how well the best model fits the data. There are several measurements which attempt to quantify the success of the model. For example, the coefficient of determination (r^2^) is the proportion of the variance in the dependent variable that is predictable from the independent variable. A coefficient r^2^ = 1 indicates that the variance in the dependent variable is entirely predictable from the independent variable (and thus the model is perfect).
 // end::use-case[]
 
 == Example
@@ -33,73 +32,103 @@ Let's look at a straightforward example--predicting Airbnb listing prices using 
 .First initialize the model
 [source,cypher]
 ----
-include::scripts/simple-linear-regression.cypher[tag=initialize]
+CALL regression.linear.create('airbnb prices')
 ----
 
 .Then add data point by point
 [source,cypher]
 ----
-include::scripts/simple-linear-regression.cypher[tag=add]
+MATCH (list:Listing)-[:IN_NEIGHBORHOOD]->(:Neighborhood{neighborhood_id:'78752'})
+WHERE exists(list.bedrooms)
+  AND exists(list.price)
+  AND NOT exists(list.added) OR list.added = false
+CALL regression.linear.add('airbnb prices', list.bedrooms, list.price)
+SET list.added = true
+RETURN list.listing_id
 ----
 
 .OR add multiple data points at once
 [source,cypher]
 ----
-include::scripts/simple-linear-regression.cypher[tag=addM]
+MATCH (list:Listing)-[:IN_NEIGHBORHOOD]->(:Neighborhood{neighborhood_id:'78752'})
+WHERE exists(list.bedrooms)
+  AND exists(list.price)
+  AND NOT exists(list.added) OR list.added = false
+SET list.added = true
+WITH collect(list.bedrooms) AS bedrooms, collect(list.price) AS prices
+CALL regression.linear.addM('airbnb prices', bedrooms, prices)
+RETURN bedrooms, prices
 ----
 
 .Next predict price for a four-bedroom listing
 [source,cypher]
 ----
-include::scripts/simple-linear-regression.cypher[tag=predict]
+RETURN regression.linear.predict('airbnb prices', 4)
 ----
 
 .Or make and store many predictions
 [source,cypher]
 ----
-include::scripts/simple-linear-regression.cypher[tag=predict-and-store]
+MATCH (list:Listing)-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:’78752’})
+WHERE exists(list.bedrooms) AND NOT exists(list.price)
+SET list.predicted_price = regression.linear.predict(list.bedrooms)
 ----
 
 .You can remove data
 [source,cypher]
 ----
-include::scripts/simple-linear-regression.cypher[tag=remove]
+MATCH (list:Listing {listing_id:2467149})-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:’78752’})
+CALL regression.linear.remove(‘airbnb prices’, list.bedrooms, list.price)
+SET list.added = false
 ----
 
 .Add some data from a nearby neighborhood
 [source,cypher]
 ----
-include::scripts/simple-linear-regression.cypher[tag=add-more]
+MATCH (list:Listing)-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:’78753’})
+WHERE exists(list.bedrooms)
+AND exists(list.price)
+AND NOT exists(list.added) OR list.added = false
+CALL regression.linear.add(‘airbnb prices’, list.bedrooms, list.price) RETURN list
 ----
 
 .Check out the number of data points in your model
 [source,cypher]
 ----
-include::scripts/simple-linear-regression.cypher[tag=info]
+CALL regression.linear.info(‘airbnb prices’)
+YIELD model, state, N
+RETURN model, state, N
 ----
 
 .And the statistics
 [source,cypher]
 ----
-include::scripts/simple-linear-regression.cypher[tag=stats]
+CALL regression.linear.stats(‘airbnb prices’)
+YIELD intercept, slope, rSquare, significance
+RETURN intercept, slope, rSquare, significance
 ----
 
 .Make sure that before shutting down the database, you store the model in the graph or externally
 [source,cypher]
 ----
-include::scripts/simple-linear-regression.cypher[tag=serialize]
+MERGE (m:ModelNode{model: ‘airbnb prices’})
+SET m.data = regression.linear.serialize(‘airbnb prices’)
+RETURN m
 ----
 
 .Delete the model
 [source,cypher]
 ----
-include::scripts/simple-linear-regression.cypher[tag=delete]
+CALL regression.linear.delete(‘airbnb prices’)
+YIELD model, state, N
+RETURN model, state, N
 ----
 
 .And then when you restart the database, load the model from the graph back into the procedure
 [source,cypher]
 ----
-include::scripts/simple-linear-regression.cypher[tag=load]
+MATCH (m:ModelNode{model: ‘airbnb prices’})
+CALL regression.linear.load(‘airbnb prices’, m.data)
 ----
 
 Now the model is ready for further data changes and predictions!

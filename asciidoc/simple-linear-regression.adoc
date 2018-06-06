@@ -114,6 +114,7 @@ YIELD model, state, framework
 MATCH (m:ModelNode {model: 'airbnb prices'})
 CALL regression.linear.Simple.load('airbnb prices', m.data)
 YIELD model, state, framework
+RETURN model, state, framework
 ----
 
 Now the model is ready for further data changes and predictions!

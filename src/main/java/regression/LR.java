@@ -17,27 +17,47 @@ public class LR {
     @Context
     public Log log;
 
-    @Procedure(value = "regression.linear.create", mode = Mode.READ)
-    @Description("Create a linear regression of type 'framework' named 'model'. Return a stream containing its name (model)," +
-            " state (state), and type (framework).")
-    public Stream<ModelResult> create(@Name("model") String model, @Name("number of variables") double numVars,
-                                      @Name("include constant?") boolean constant, @Name("framework") String framework) {
-        return Stream.of((LRModel.create(model, numVars, constant, framework)).asResult());
+    @Procedure(value = "regression.linear.Simple.create", mode = Mode.READ)
+    @Description("Initialize a simple linear regression model named 'model' and store in static memory.")
+    public Stream<ModelResult> createSimple(@Name("model") String model, @Name("include constant term?") boolean constant) {
+        return Stream.of(new SimpleLRModel(model, constant).asResult());
     }
 
+    @Procedure(value = "regression.linear.Miller.create", mode = Mode.READ)
+    @Description("Initialize an updating OLS multiple linear regression model named 'model' and store it in static memory.")
+    public Stream<ModelResult> createMiller(@Name("model") String model, @Name("include constant term?") boolean constant,
+                                                @Name("number of variables") double numVars) {
+        return Stream.of(new MillerLRModel(model, new Double(numVars).intValue(), constant).asResult());
+    }
+
+    @Procedure(value = "regression.linear.OLS.create", mode = Mode.READ)
+    @Description("Initialize an ordinary least squares model for multiple linear regression and store it in static memory. " +
+            "Use this model if the independent variables are uncorrelated.")
+    public Stream<ModelResult> createOLS(@Name("model") String model, @Name("include constant term?") boolean constant,
+                                         @Name("number of variables") double numVars) {
+        return Stream.of(new OlsLRModel(model, new Double(numVars).intValue(), constant).asResult());
+    }
+
+    /*@Procedure(value = "regression.linear.GLS.create", mode = Mode.READ)
+    @Description("Initialize a general least squares model for multiple linear regression and store it in static memory. " +
+            "This model will calculate the covariance matrix and use it to calculate parameters at the time of training.")
+    public Stream<ModelResult> createGLS(@Name("model") String model, @Name("include constant term?") boolean constant,
+                                         @Name("number of variables") double numVars) {
+        return Stream.of(new GlsLRModel(model, new Double(numVars).intValue(), constant).asResult());
+    }*/
+
     @Procedure(value = "regression.linear.info", mode = Mode.READ)
-    @Description("Returns a stream containing the model's name (model), state (state), and type (framework).")
+    @Description("Return a stream containing the model's name (model), state (state), and type (framework).")
     public Stream<ModelResult> info(@Name("model") String model) {
         LRModel lrModel = LRModel.from(model);
         return Stream.of(lrModel.asResult());
     }
 
     @Procedure(value = "regression.linear.stats", mode = Mode.READ)
-    @Description("Returns a stream containing the model's number of observations (N), number of variables (numVars), " +
-            "and any other relevant statistics depending on the model's framework")
+    @Description("Return a stream containing the model's number of observations (N), number of variables (numVars), " +
+            "and other relevant statistics depending on the model's framework.")
     public Stream<StatResult> stat(@Name("model") String model) {
-        LRModel lrModel = LRModel.from(model);
-        return Stream.of(lrModel.stats());
+        return Stream.of(LRModel.from(model).stats());
     }
 
     /*@Procedure(value = "regression.linear.add", mode = Mode.READ)
@@ -48,10 +68,9 @@ public class LR {
     }*/
 
     @Procedure(value = "regression.linear.add", mode = Mode.READ)
-    @Description("Void procedure that adds a single observation to the model.")
+    @Description("Add a single observation to the model. Void procedure.")
     public void add(@Name("model") String model, @Name("given") List<Double> given, @Name("expected") double expected) {
-        LRModel lrModel = LRModel.from(model);
-        lrModel.add(given, expected);
+        LRModel.from(model).add(given, expected);
     }
 
     /*@Procedure(value = "regression.linear.addM", mode = Mode.READ)
@@ -64,12 +83,10 @@ public class LR {
         }
     }*/
 
-    @Procedure(value = "regression.linear.remove", mode = Mode.READ)
-    @Description("Void procedure which removes a single data point from 'model'. A call to this procedure is only valid if the " +
-            "model is type 'simple'")
-    public void remove(@Name("model") String model, @Name("given") double given, @Name("expected") double expected) {
-        LRModel lrModel = LRModel.from(model);
-        lrModel.removeData(given, expected);
+    @Procedure(value = "regression.linear.Simple.remove", mode = Mode.READ)
+    @Description("Void procedure which removes a single observation from 'model'.")
+    public void remove(@Name("model") String model, @Name("given") List<Double> given, @Name("expected") double expected) {
+        LRModel.from(model).removeData(given, expected);
     }
 
     @Procedure(value = "regression.linear.delete", mode = Mode.READ)
@@ -79,51 +96,38 @@ public class LR {
         return Stream.of(LRModel.removeModel(model));
     }
 
-    /*@UserFunction(value = "regression.linear.predict")
-    @Description("Function which returns a single double which is 'model' evaluated at the point 'given'.")
-    public double predict(@Name("mode") String model, @Name("given") double given) {
-        LRModel lrModel = LRModel.from(model);
-        List<Double> data = new ArrayList<>();
-        data.add(given);
-        return lrModel.predict(data);
-    }*/
-
     @UserFunction(value = "regression.linear.predict")
     @Description("Function returns the model's prediction at 'given'. If the model is a type that must be trained and the model" +
             " is not yet trained, this function will first train the model.")
     public double predict(@Name("mode") String model, @Name("given") List<Double> given) {
-        LRModel lrModel = LRModel.from(model);
-        return lrModel.predict(given);
+        return LRModel.from(model).predict(given);
     }
 
-    @UserFunction(value = "regression.linear.serialize")
-    @Description("If the model is type 'simple' this function will serializes the model's Java object and returns the " +
-            "byte[] serialization. If it is type 'miller' the function will return the double[] regression parameters of the " +
-            "trained model")
-    public Object serialize(@Name("model") String model) {
-        LRModel lrModel = LRModel.from(model);
-        return lrModel.serialize();
+    @UserFunction(value = "regression.linear.data")
+    @Description("If the model is type 'simple' this function will serialize the model's Java object and returns the " +
+            "byte[] serialization. If it is a type of multiple regression the function will return the double[] regression " +
+            "parameters of the trained model. If this model is not yet trained, this function will first train the model.")
+    public Object data(@Name("model") String model) {
+        return LRModel.from(model).data();
     }
 
-    @Procedure(value = "regression.linear.load", mode = Mode.READ)
-    @Description("This procedure is only valid for models of type 'simple'. It loads the model stored in data into the " +
-            "procedure's memory under the name 'model'. 'data' must be a byte array. Returns a stream containing the model's name " +
-            "(model), state (state), and type (framework).")
-    public Stream<ModelResult> load(@Name("model") String model, @Name("data") Object data, @Name("framework") String framework) {
+    @Procedure(value = "regression.linear.Simple.load", mode = Mode.READ)
+    @Description("This procedure loads the model stored in data into the procedure's memory under the name 'model'. " +
+            "'data' must be a byte array. Returns a stream containing the model's name (model), state (state), and type (framework).")
+    public Stream<ModelResult> load(@Name("model") String model, @Name("data") Object data) {
         SimpleRegression R;
         try { R = (SimpleRegression) convertFromBytes((byte[]) data); }
         catch (Exception e) {
             throw new RuntimeException("invalid data");
         }
-        return Stream.of((LRModel.create(model, data, framework)).asResult());
+        return Stream.of(new SimpleLRModel(model, data).asResult());
     }
 
-    @UserFunction(value = "regression.linear.train")
+    @Procedure(value = "regression.linear.train", mode = Mode.READ)
     @Description("Trains the model and returns parameters.")
-    public Map<String, Double> train(@Name("model") String model) {
-        LRModel lrModel = LRModel.from(model);
-        return lrModel.train();
-    }
+    public void train(@Name("model") String model) {
+        LRModel.from(model).train();
+}
 
     public static class ModelResult {
         public final String model;

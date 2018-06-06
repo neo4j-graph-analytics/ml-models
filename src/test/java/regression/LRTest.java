@@ -64,12 +64,24 @@ public class LRTest {
         db.execute("CREATE (:Node {id:5}) -[:WORKS_FOR {time:4.0}] -> " +
                 "(:Node {id:6}) - [:WORKS_FOR {time:5.0}] -> (:Node {id:7})");
 
-        //initialize the model
-        db.execute("CALL regression.linear.create('work and progress', 1, true, 'simple')");
+        //initialize the models
+        db.execute("CALL regression.linear.Simple.create('work and progress', true)");
+        db.execute("CALL regression.linear.Miller.create('work and progress, miller', true, 1)");
+        db.execute("CALL regression.linear.OLS.create('work and progress, ols', true, 1)");
 
         //add known data
         Result r = db.execute("MATCH () - [r:WORKS_FOR] -> () WHERE exists(r.time) AND exists(r.progress) CALL " +
                 "regression.linear.add('work and progress', [r.time], r.progress) RETURN r");
+        //these rows are computed lazily so we must iterate through all rows to ensure all data points are added to the model
+        exhaust(r);
+        //add known data
+        r = db.execute("MATCH () - [r:WORKS_FOR] -> () WHERE exists(r.time) AND exists(r.progress) CALL " +
+                "regression.linear.add('work and progress, miller', [r.time], r.progress) RETURN r");
+        //these rows are computed lazily so we must iterate through all rows to ensure all data points are added to the model
+        exhaust(r);
+        //add known data
+        r = db.execute("MATCH () - [r:WORKS_FOR] -> () WHERE exists(r.time) AND exists(r.progress) CALL " +
+                "regression.linear.add('work and progress, ols', [r.time], r.progress) RETURN r");
         //these rows are computed lazily so we must iterate through all rows to ensure all data points are added to the model
         exhaust(r);
 
@@ -78,7 +90,22 @@ public class LRTest {
                 "RETURN model, state, framework").next();
         assertTrue(info.get("model").equals("work and progress"));
         assertTrue(info.get("state").equals("ready"));
-        assertTrue(info.get("framework").equals("simple"));
+        assertTrue(info.get("framework").equals("Simple"));
+        //check that the correct info is stored in the model (should contain 3 data points)
+        db.execute("call regression.linear.train('work and progress, miller')");
+        info = db.execute("CALL regression.linear.info('work and progress, miller') YIELD model, state, framework " +
+                "RETURN model, state, framework").next();
+        assertTrue(info.get("model").equals("work and progress, miller"));
+        assertTrue(info.get("state").equals("ready"));
+        assertTrue(info.get("framework").equals("Miller"));
+        //check that the correct info is stored in the model (should contain 3 data points)
+        db.execute("call regression.linear.train('work and progress, ols')");
+        info = db.execute("CALL regression.linear.info('work and progress, ols') YIELD model, state, framework " +
+                "RETURN model, state, framework").next();
+        assertTrue(info.get("model").equals("work and progress, ols"));
+        assertTrue(info.get("state").equals("ready"));
+        assertTrue(info.get("framework").equals("OLS"));
+        //check that the correct info is stored in the model (should contain 3 data points)
 
         //store predictions
         String storePredictions = "MATCH (:Node)-[r:WORKS_FOR]->(:Node) WHERE exists(r.time) AND NOT exists(r.progress) " +
@@ -103,7 +130,7 @@ public class LRTest {
         check(result, expected);
 
         //serialize the model
-        Map<String, Object> serial = db.execute("RETURN regression.linear.serialize('work and progress') as data").next();
+        Map<String, Object> serial = db.execute("RETURN regression.linear.data('work and progress') as data").next();
         Object data = serial.get("data");
 
         //check that the byte[] model returns same predictions as the model stored in the procedure
@@ -115,11 +142,11 @@ public class LRTest {
         db.execute("CALL regression.linear.delete('work and progress')");
         Map<String, Object> params = new HashMap<>();
         params.put("data", data);
-        db.execute("CALL regression.linear.load('work and progress', $data, 'simple')", params);
+        db.execute("CALL regression.linear.Simple.load('work and progress', $data)", params);
 
         //remove data from relationship between nodes 1 and 2
-        r = db.execute("MATCH (:Node {id:1})-[r:WORKS_FOR]->(:Node {id:2}) CALL regression.linear.remove('work " +
-                "and progress', r.time, r.progress) return r");
+        r = db.execute("MATCH (:Node {id:1})-[r:WORKS_FOR]->(:Node {id:2}) CALL regression.linear.Simple.remove('work " +
+                "and progress', [r.time], r.progress) return r");
         exhaust(r);
 
         //create a new relationship between nodes 7 and 8

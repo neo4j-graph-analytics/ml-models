@@ -18,9 +18,10 @@ public class OlsLRModel extends LRModel {
     private int numObs;
     private double[] params;
 
-    OlsLRModel(String model, int numVars) {
-        super(model, "OLS");
+    OlsLRModel(String model, int numVars, boolean intercept) {
+        super(model, Framework.OLS);
         R = new OLSMultipleLinearRegression();
+        R.setNoIntercept(!intercept);
         numObs = 0;
         this.numVars = numVars;
     }
@@ -34,6 +35,7 @@ public class OlsLRModel extends LRModel {
         data.add(expected);
         data.addAll(given);
         numObs += 1;
+        this.state = State.training;
     }
 
     @Override
@@ -51,7 +53,7 @@ public class OlsLRModel extends LRModel {
     }
 
     @Override
-    public Object serialize() {
+    public Object data() {
         if (this.state == State.training) train();
         if (this.state == State.ready) return this.params;
         else throw new RuntimeException(this.name + "is not in a state for serialization.");

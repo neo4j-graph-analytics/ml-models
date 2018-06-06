@@ -16,7 +16,7 @@ public class MillerLRModel extends LRModel{
     private double[] params;
 
     MillerLRModel(String name, int numVars, boolean constant) {
-        super(name, "miller");
+        super(name, Framework.Miller);
         R = new MillerUpdatingRegression(numVars, constant);
         this.numVars = numVars;
     }
@@ -65,7 +65,7 @@ public class MillerLRModel extends LRModel{
     }
 
     @Override
-    public Object serialize() {
+    public Object data() {
         return trained.getParameterEstimates();
     }
 }

@@ -15,12 +15,12 @@ public class SimpleLRModel extends LRModel {
     private SimpleRegression R;
 
     SimpleLRModel(String name, boolean constant) {
-        super(name, "simple");
+        super(name, Framework.Simple);
         R = new SimpleRegression(constant);
     }
 
     SimpleLRModel(String name, Object data) {
-        super(name, "simple");
+        super(name, Framework.Simple);
         try {
             R = (SimpleRegression) LR.convertFromBytes((byte[]) data);
             if (R.getN() == 1) this.state = State.training;
@@ -48,8 +48,11 @@ public class SimpleLRModel extends LRModel {
     }
 
     @Override
-    protected void removeData(double x, double y) {
-        R.removeData(x, y);
+    protected void removeData(List<Double> input, double output) {
+        if (input.isEmpty()) {
+            throw new IllegalArgumentException("x is empty, cannot remove any data.");
+        }
+        for (double x: input) R.removeData(x, output);
         if (R.getN() == 1) this.state = State.training;
         else if (R.getN() > 1) this.state = State.ready;
     }
@@ -60,7 +63,7 @@ public class SimpleLRModel extends LRModel {
     }
 
     @Override
-    public Object serialize() {
+    public Object data() {
         try { return LR.convertToBytes(R); }
         catch (IOException e) { throw new RuntimeException(name + " cannot be serialized."); }
     }
@@ -76,6 +79,7 @@ public class SimpleLRModel extends LRModel {
         Map<String, Double> params = new HashMap<>();
         params.put("slope", R.getSlope());
         params.put("intercept", R.getIntercept());
+        this.state = State.ready;
         return params;
     }
 }

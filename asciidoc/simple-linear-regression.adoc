@@ -28,43 +28,30 @@ Because simple linear regression is so straightforward, it can be used with any 
 
 == Example
 
-Let's look at a straightforward example--predicting Airbnb listing prices using the listing's number of bedrooms. Run `:play http://guides.neo4j.com/listings` and follow the import statements to load Will Lyon's Airbnb graph.
+Let's look at a straightforward example--predicting short term rental listing prices using the listing's number of bedrooms. Run `:play http://guides.neo4j.com/listings` and follow the import statements to load Will Lyon's rental listing graph.
 
 .First initialize the model
 [source,cypher]
 ----
-CALL regression.linear.create('airbnb prices')
+CALL regression.linear.Simple.create('airbnb prices', true)
 ----
 
 .Then add data point by point
 [source,cypher]
 ----
-MATCH (list:Listing)-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:'78752'})
+MATCH (list:Listing)-[n:IN_NEIGHBORHOOD]->(hood:Neighborhood {neighborhood_id:'78752'})
 WHERE exists(list.bedrooms)
     AND exists(list.price)
     AND NOT exists(list.added) OR list.added = false
-CALL regression.linear.add('airbnb prices', list.bedrooms, list.price)
+CALL regression.linear.add('airbnb prices', [list.bedrooms], list.price)
 SET list.added = true
-RETURN list.listing_id
-----
-
-.OR add multiple data points at once
-[source,cypher]
-----
-MATCH (list:Listing)-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:'78752'})
-WHERE exists(list.bedrooms)
-    AND exists(list.price)
-    AND NOT exists(list.added) OR list.added = false
-SET list.added = true
-WITH collect(list.bedrooms) AS bedrooms, collect(list.price) AS prices
-CALL regression.linear.addM('airbnb prices', bedrooms, prices)
-RETURN bedrooms, prices
+RETURN list, n, hood
 ----
 
 .Next predict price for a four-bedroom listing
 [source,cypher]
 ----
-RETURN regression.linear.predict('airbnb prices', 4)
+RETURN regression.linear.predict('airbnb prices', [4])
 ----
 
 .Or make and store many predictions
@@ -72,14 +59,14 @@ RETURN regression.linear.predict('airbnb prices', 4)
 ----
 MATCH (list:Listing)-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:'78752'})
 WHERE exists(list.bedrooms) AND NOT exists(list.price)
-SET list.predicted_price = regression.linear.predict(list.bedrooms)
+SET list.predicted_price = regression.linear.predict('airbnb prices', [list.bedrooms])
 ----
 
 .You can remove data
 [source,cypher]
 ----
 MATCH (list:Listing {listing_id:2467149})-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:'78752'})
-CALL regression.linear.remove('airbnb prices', list.bedrooms, list.price)
+CALL regression.linear.Simple.remove('airbnb prices', [list.bedrooms], list.price)
 SET list.added = false
 ----
 
@@ -90,46 +77,43 @@ MATCH (list:Listing)-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:'78753'
 WHERE exists(list.bedrooms)
     AND exists(list.price)
     AND NOT exists(list.added) OR list.added = false
-CALL regression.linear.add('airbnb prices', list.bedrooms, list.price) RETURN list
+CALL regression.linear.add('airbnb prices', [list.bedrooms], list.price) RETURN list
 ----
 
 .Check out the number of data points in your model
 [source,cypher]
 ----
 CALL regression.linear.info('airbnb prices')
-YIELD model, state, N
-RETURN model, state, N
+YIELD model, state, framework
 ----
 
 .And the statistics
 [source,cypher]
 ----
 CALL regression.linear.stats('airbnb prices')
-YIELD intercept, slope, rSquare, significance
-RETURN intercept, slope, rSquare, significance
+YIELD N, numVars, info
 ----
 
 .Make sure that before shutting down the database, you store the model in the graph or externally
 [source,cypher]
 ----
 MERGE (m:ModelNode {model: 'airbnb prices'})
-SET m.data = regression.linear.serialize('airbnb prices')
-RETURN m
+SET m.data = regression.linear.data('airbnb prices')
 ----
 
 .Delete the model
 [source,cypher]
 ----
 CALL regression.linear.delete('airbnb prices')
-YIELD model, state, N
-RETURN model, state, N
+YIELD model, state, framework
 ----
 
 .And then when you restart the database, load the model from the graph back into the procedure
 [source,cypher]
 ----
 MATCH (m:ModelNode {model: 'airbnb prices'})
-CALL regression.linear.load('airbnb prices', m.data)
+CALL regression.linear.Simple.load('airbnb prices', m.data)
+YIELD model, state, framework
 ----
 
 Now the model is ready for further data changes and predictions!

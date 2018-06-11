@@ -9,16 +9,17 @@ import java.util.Arrays;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import static org.junit.Assert.*;
+
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.*;
-
-import static org.junit.Assert.*;
-import static org.hamcrest.CoreMatchers.equalTo;
-
-import org.apache.commons.math3.stat.regression.SimpleRegression;
 import org.neo4j.kernel.impl.proc.Procedures;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestGraphDatabaseFactory;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import org.apache.commons.math3.stat.regression.SimpleRegression;
+
 
 public class LRTest {
 
@@ -65,47 +66,21 @@ public class LRTest {
                 "(:Node {id:6}) - [:WORKS_FOR {time:5.0}] -> (:Node {id:7})");
 
         //initialize the models
-        db.execute("CALL regression.linear.Simple.create('work and progress', true)");
-        db.execute("CALL regression.linear.Miller.create('work and progress, miller', true, 1)");
-        db.execute("CALL regression.linear.OLS.create('work and progress, ols', true, 1)");
+        db.execute("CALL regression.linear.create('work and progress', 'Simple', true, 1)");
 
         //add known data
         Result r = db.execute("MATCH () - [r:WORKS_FOR] -> () WHERE exists(r.time) AND exists(r.progress) CALL " +
                 "regression.linear.add('work and progress', [r.time], r.progress) RETURN r");
         //these rows are computed lazily so we must iterate through all rows to ensure all data points are added to the model
         exhaust(r);
-        //add known data
-        r = db.execute("MATCH () - [r:WORKS_FOR] -> () WHERE exists(r.time) AND exists(r.progress) CALL " +
-                "regression.linear.add('work and progress, miller', [r.time], r.progress) RETURN r");
-        //these rows are computed lazily so we must iterate through all rows to ensure all data points are added to the model
-        exhaust(r);
-        //add known data
-        r = db.execute("MATCH () - [r:WORKS_FOR] -> () WHERE exists(r.time) AND exists(r.progress) CALL " +
-                "regression.linear.add('work and progress, ols', [r.time], r.progress) RETURN r");
-        //these rows are computed lazily so we must iterate through all rows to ensure all data points are added to the model
-        exhaust(r);
 
-        //check that the correct info is stored in the model (should contain 3 data points)
-        Map<String, Object> info = db.execute("CALL regression.linear.info('work and progress') YIELD model, state, framework " +
-                "RETURN model, state, framework").next();
+        //check that the correct info is stored in the model
+        Map<String, Object> info = db.execute("CALL regression.linear.info('work and progress') YIELD model, state, framework, numVars, info " +
+                "RETURN model, state, framework, numVars, info").next();
         assertTrue(info.get("model").equals("work and progress"));
         assertTrue(info.get("state").equals("ready"));
         assertTrue(info.get("framework").equals("Simple"));
-        //check that the correct info is stored in the model (should contain 3 data points)
-        db.execute("call regression.linear.train('work and progress, miller')");
-        info = db.execute("CALL regression.linear.info('work and progress, miller') YIELD model, state, framework " +
-                "RETURN model, state, framework").next();
-        assertTrue(info.get("model").equals("work and progress, miller"));
-        assertTrue(info.get("state").equals("ready"));
-        assertTrue(info.get("framework").equals("Miller"));
-        //check that the correct info is stored in the model (should contain 3 data points)
-        db.execute("call regression.linear.train('work and progress, ols')");
-        info = db.execute("CALL regression.linear.info('work and progress, ols') YIELD model, state, framework " +
-                "RETURN model, state, framework").next();
-        assertTrue(info.get("model").equals("work and progress, ols"));
-        assertTrue(info.get("state").equals("ready"));
-        assertTrue(info.get("framework").equals("OLS"));
-        //check that the correct info is stored in the model (should contain 3 data points)
+        assertThat(info.get("numVars"), equalTo(1L));
 
         //store predictions
         String storePredictions = "MATCH (:Node)-[r:WORKS_FOR]->(:Node) WHERE exists(r.time) AND NOT exists(r.progress) " +
@@ -142,10 +117,10 @@ public class LRTest {
         db.execute("CALL regression.linear.delete('work and progress')");
         Map<String, Object> params = new HashMap<>();
         params.put("data", data);
-        db.execute("CALL regression.linear.Simple.load('work and progress', $data)", params);
+        db.execute("CALL regression.linear.load('work and progress', $data, 'Simple')", params);
 
         //remove data from relationship between nodes 1 and 2
-        r = db.execute("MATCH (:Node {id:1})-[r:WORKS_FOR]->(:Node {id:2}) CALL regression.linear.Simple.remove('work " +
+        r = db.execute("MATCH (:Node {id:1})-[r:WORKS_FOR]->(:Node {id:2}) CALL regression.linear.remove('work " +
                 "and progress', [r.time], r.progress) return r");
         exhaust(r);
 
@@ -172,7 +147,7 @@ public class LRTest {
         check(result, expected);
 
         //test addM procedure for adding multiple data points
-        /*List<Double> points = Arrays.asList(7.0, 8.0);
+        List<List<Double>> points = Arrays.asList(Arrays.asList(7.0), Arrays.asList(8.0));
         List<Double> observed = Arrays.asList(6.900, 9.234);
         params.put("points", points);
         params.put("observed", observed);
@@ -185,7 +160,7 @@ public class LRTest {
         expected.put(5.0, R.predict(5.0));
         result = db.execute(gatherPredictedValues);
 
-        check(result, expected);*/
+        check(result, expected);
 
         db.execute("CALL regression.linear.delete('work and progress')").close();
 

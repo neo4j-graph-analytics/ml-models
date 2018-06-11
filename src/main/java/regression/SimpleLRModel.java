@@ -3,13 +3,11 @@
  */
 
 package regression;
-import org.apache.commons.math3.stat.regression.SimpleRegression;
 
+import org.apache.commons.math3.stat.regression.SimpleRegression;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
 
 public class SimpleLRModel extends LRModel {
     private SimpleRegression R;
@@ -35,7 +33,13 @@ public class SimpleLRModel extends LRModel {
     }
 
     @Override
-    public void add(List<Double> given, double expected) {
+    long getNumVars() { return 1; }
+
+    @Override
+    boolean hasConstant() {return R.hasIntercept();}
+
+    @Override
+    void add(List<Double> given, double expected) {
         int givenSize = given.size();
         if (givenSize == 1) {
             R.addData(given.get(0), expected);
@@ -58,28 +62,39 @@ public class SimpleLRModel extends LRModel {
     }
 
     @Override
-    public double predict(List<Double> given) {
+    double predict(List<Double> given) {
         return R.predict(given.get(0));
     }
 
     @Override
-    public Object data() {
+    Object data() {
         try { return LR.convertToBytes(R); }
         catch (IOException e) { throw new RuntimeException(name + " cannot be serialized."); }
     }
 
-    @Override
+    /*@Override
     public LR.StatResult stats() {
         return new LR.StatResult(R.getN(), 1).withInfo("intercept", R.getIntercept(),
                 "slope", R.getSlope(), "rSquared", R.getRSquare(), "significance", R.getSignificance());
+    }*/
+
+    @Override
+    LR.ModelResult train() {
+        return asResult();
     }
 
     @Override
-    public Map<String, Double> train() {
-        Map<String, Double> params = new HashMap<>();
-        params.put("slope", R.getSlope());
-        params.put("intercept", R.getIntercept());
-        this.state = State.ready;
-        return params;
+    LR.ModelResult asResult() {
+        LR.ModelResult r = new LR.ModelResult(name, framework, hasConstant(), getNumVars(), state, getN());
+        if (state == State.ready) {
+            List<Double> params = new ArrayList<>();
+            params.add(R.getIntercept());
+            params.add(R.getSlope());
+            return r.withInfo("parameters", params, "rSquared", R.getRSquare(), "significance", R.getSignificance(),
+                    "slope confidence interval", R.getSlopeConfidenceInterval(), "intercept std error", R.getInterceptStdErr(),
+                    "slope std error", R.getSlopeStdErr(), "SSE", R.getSumSquaredErrors(), "MSE", R.getMeanSquareError());
+        }
+        return r;
     }
+
 }

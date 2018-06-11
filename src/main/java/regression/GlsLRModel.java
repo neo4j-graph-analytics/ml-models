@@ -2,14 +2,13 @@ package regression;
 
 import org.apache.commons.math3.linear.BlockRealMatrix;
 import org.apache.commons.math3.linear.RealMatrix;
-import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.apache.commons.math3.stat.regression.GLSMultipleLinearRegression;
 import org.apache.commons.math3.stat.correlation.Covariance;
+
+//NOT CURRENTLY WORKING, DEVELOPMENT PAUSED//
 
 /**
  * Created by Lauren on 6/5/18.
@@ -33,6 +32,13 @@ public class GlsLRModel extends LRModel {
     protected long getN() {
         return numObs;
     }
+
+    @Override
+    long getNumVars() { return numVars; }
+
+    @Override
+    boolean hasConstant() {return !R.isNoIntercept();}
+
     @Override
     public void add(List<Double> given, double expected) {
         if (given.size() != numVars) throw new IllegalArgumentException("incorrect number of variables in given.");
@@ -63,17 +69,17 @@ public class GlsLRModel extends LRModel {
         else throw new RuntimeException(this.name + "is not in a state for serialization.");
     }
 
-    @Override
+    /*@Override
     public LR.StatResult stats() {
         return new LR.StatResult(this.getN(), this.numVars);
-    }
+    }*/
 
     @Override
-    public Map<String, Double> train() {
+    public LR.ModelResult train() {
         double[][] dataArray = new double[this.numObs][this.numVars];
         for (int i = 0; i < numObs; i++) {
             for (int j = 0; j < numVars; j++)
-                dataArray[j][i] = data.get(i).get(j);
+                dataArray[i][j] = data.get(i).get(j);
         }
         RealMatrix data = new BlockRealMatrix(dataArray);
         double[] obs = LR.convertFromList(response);
@@ -83,10 +89,10 @@ public class GlsLRModel extends LRModel {
         R.newSampleData(obs, dataArray, covariance);
         params = R.estimateRegressionParameters();
         this.state = State.ready;
-        Map<String, Double> paramResult = new HashMap<>();
+        List<Double> paramResult = new ArrayList<>();
         for (int i = 0; i < numVars; i++) {
-            paramResult.put(Integer.toString(i), params[i]);
+            paramResult.add(params[i]);
         }
-        return paramResult;
+        return new LR.ModelResult(name, framework, hasConstant(), getNumVars(), state, getN()).withInfo("parameters", paramResult);
     }
 }

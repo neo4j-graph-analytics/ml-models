@@ -8,7 +8,7 @@ Regression is a statistical tool for investigating the relationships between var
 
 // tag::explanation[]
 At the core of linear regression is the method of least squares. In this method, the linear trend line is chosen which minimizes the sum of every data point's squared residual (deviation from the model). 
-image::https://bookdown.org/sbikienga/Intro_to_stat_book/introduction-to-simple-linear-regression.html[Tux,250,350]
+image::https://bookdown.org/sbikienga/Intro_to_stat_book/images/chap7/ols.jpg[Tux,250,350]
 The method of least squares was independently discovered by Carl Friedrich-Gauss and Adrien-Marie Legendre in the early 19th century. The linear regression methods used today can be primarily attributed to the work of R.A. Fisher in the 1920s.
 // end::explanation[]
 

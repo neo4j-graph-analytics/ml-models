@@ -33,7 +33,7 @@ Let's look at a straightforward example--predicting short term rental listing pr
 .First initialize the model
 [source,cypher]
 ----
-CALL regression.linear.Simple.create('airbnb prices', true)
+CALL regression.linear.create('airbnb prices', 'Simple', true, 1)
 ----
 
 .Then add data point by point
@@ -42,10 +42,10 @@ CALL regression.linear.Simple.create('airbnb prices', true)
 MATCH (list:Listing)-[n:IN_NEIGHBORHOOD]->(hood:Neighborhood {neighborhood_id:'78752'})
 WHERE exists(list.bedrooms)
     AND exists(list.price)
-    AND NOT exists(list.added) OR list.added = false
+    AND NOT list:Trained
 CALL regression.linear.add('airbnb prices', [list.bedrooms], list.price)
-SET list.added = true
-RETURN list, n, hood
+SET list:Trained
+RETURN *
 ----
 
 .Next predict price for a four-bedroom listing
@@ -65,9 +65,9 @@ SET list.predicted_price = regression.linear.predict('airbnb prices', [list.bedr
 .You can remove data
 [source,cypher]
 ----
-MATCH (list:Listing {listing_id:2467149})-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:'78752'})
-CALL regression.linear.Simple.remove('airbnb prices', [list.bedrooms], list.price)
-SET list.added = false
+MATCH (list:Listing {listing_id:'2467149'})-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:'78752'})
+CALL regression.linear.remove('airbnb prices', [list.bedrooms], list.price)
+REMOVE list:Trained
 ----
 
 .Add some data from a nearby neighborhood
@@ -76,22 +76,16 @@ SET list.added = false
 MATCH (list:Listing)-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:'78753'})
 WHERE exists(list.bedrooms)
     AND exists(list.price)
-    AND NOT exists(list.added) OR list.added = false
-CALL regression.linear.add('airbnb prices', [list.bedrooms], list.price) RETURN list
+    AND NOT list:Trained
+CALL regression.linear.add('airbnb prices', [list.bedrooms], list.price) 
+SET list:Trained RETURN list
 ----
 
 .Check out the number of data points in your model
 [source,cypher]
 ----
 CALL regression.linear.info('airbnb prices')
-YIELD model, state, framework
-----
-
-.And the statistics
-[source,cypher]
-----
-CALL regression.linear.stats('airbnb prices')
-YIELD N, numVars, info
+YIELD model, framework, hasConstant, numVars, state, N, info
 ----
 
 .Make sure that before shutting down the database, you store the model in the graph or externally
@@ -105,16 +99,16 @@ SET m.data = regression.linear.data('airbnb prices')
 [source,cypher]
 ----
 CALL regression.linear.delete('airbnb prices')
-YIELD model, state, framework
+YIELD model, framework, hasConstant, numVars, state, N, info
 ----
 
 .And then when you restart the database, load the model from the graph back into the procedure
 [source,cypher]
 ----
 MATCH (m:ModelNode {model: 'airbnb prices'})
-CALL regression.linear.Simple.load('airbnb prices', m.data)
-YIELD model, state, framework
-RETURN model, state, framework
+CALL regression.linear.load('airbnb prices', m.data, 'Simple')
+YIELD model, framework, hasConstant, numVars, state, N, info
+RETURN model, framework, hasConstant, numVars, state, N, info
 ----
 
 Now the model is ready for further data changes and predictions!

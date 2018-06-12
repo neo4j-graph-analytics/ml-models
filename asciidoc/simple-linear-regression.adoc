@@ -8,7 +8,9 @@ Regression is a statistical tool for investigating the relationships between var
 
 // tag::explanation[]
 At the core of linear regression is the method of least squares. In this method, the linear trend line is chosen which minimizes the sum of every data point's squared residual (deviation from the model). 
+
 image::images/ols.jpg[width=800]
+
 The method of least squares was independently discovered by Carl Friedrich-Gauss and Adrien-Marie Legendre in the early 19th century. The linear regression methods used today can be primarily attributed to the work of R.A. Fisher in the 1920s.
 // end::explanation[]
 
@@ -41,7 +43,7 @@ CALL regression.linear.create('airbnb prices', 'Simple', true, 1)
 .Then add data point by point
 [source,cypher]
 ----
-MATCH (list:Listing)-[n:IN_NEIGHBORHOOD]->(hood:Neighborhood {neighborhood_id:'78752'})
+MATCH (list:Listing)-[n:IN_NEIGHBORHOOD]->(hood:Neighborhood {neighborhood_id:'78704'})
 WHERE exists(list.bedrooms)
     AND exists(list.price)
     AND NOT list:Trained
@@ -59,7 +61,7 @@ RETURN regression.linear.predict('airbnb prices', [4])
 .Or make and store many predictions
 [source,cypher]
 ----
-MATCH (list:Listing)-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:'78752'})
+MATCH (list:Listing)-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:'78704'})
 WHERE exists(list.bedrooms) AND NOT exists(list.price)
 SET list.predicted_price = regression.linear.predict('airbnb prices', [list.bedrooms])
 ----
@@ -67,7 +69,7 @@ SET list.predicted_price = regression.linear.predict('airbnb prices', [list.bedr
 .You can remove data
 [source,cypher]
 ----
-MATCH (list:Listing {listing_id:'2467149'})-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:'78752'})
+MATCH (list:Listing {listing_id:'2467149'})-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:'78704'})
 CALL regression.linear.remove('airbnb prices', [list.bedrooms], list.price)
 REMOVE list:Trained
 ----
@@ -75,7 +77,7 @@ REMOVE list:Trained
 .Add some data from a nearby neighborhood
 [source,cypher]
 ----
-MATCH (list:Listing)-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:'78753'})
+MATCH (list:Listing)-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:'78701'})
 WHERE exists(list.bedrooms)
     AND exists(list.price)
     AND NOT list:Trained

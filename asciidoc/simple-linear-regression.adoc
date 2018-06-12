@@ -30,7 +30,7 @@ In simple linear regression, both the independent and dependent variables must b
 // tag::constraints[]
 Because simple linear regression is so straightforward, it can be used with any numeric data pair. The real question is how well the best model fits the data. There are several measurements which attempt to quantify the success of the model. For example, the coefficient of determination (`r^2^`) is the proportion of the variance in the dependent variable that is predictable from the independent variable. A coefficient `r^2^ = 1` indicates that the variance in the dependent variable is entirely predictable from the independent variable (and thus the model is perfect).
 
-image::images/rSquared.png[width=200]
+image::images/rSquared.png[width=400]
 // end::use-case[]
 
 == Example

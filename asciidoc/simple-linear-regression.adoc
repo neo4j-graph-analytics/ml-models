@@ -10,6 +10,7 @@ Regression is a statistical tool for investigating the relationships between var
 At the core of linear regression is the method of least squares. In this method, the linear trend line is chosen which minimizes the sum of every data point's squared residual (deviation from the model). 
 
 image::images/ols.jpg[width=800]
+_https://bookdown.org/sbikienga/Intro_to_stat_book/introduction-to-simple-linear-regression.html_
 
 The method of least squares was independently discovered by Carl Friedrich-Gauss and Adrien-Marie Legendre in the early 19th century. The linear regression methods used today can be primarily attributed to the work of R.A. Fisher in the 1920s.
 // end::explanation[]
@@ -17,7 +18,7 @@ The method of least squares was independently discovered by Carl Friedrich-Gauss
 == Use-cases
 
 // tag::use-case[]
-In simple linear regression, both the independent and dependent variables must be numeric. The dependent variable (`y`) can then be expressed in terms of the independent variable (`x`) using the two line parameters slope (`m`) and intercept (`b`) with the equation `y = m * x + b`. For these approximations to be meaningful, the dependent variable should take continuous values. The relationship between any two variables satisfying these conditions can be analyzed with simple linear regression. However, the model will only be successful for linearly related data. Some common examples include:
+In simple linear regression, both the independent and dependent variables must be numeric. The dependent variable (`y`) can then be expressed in terms of the independent variable (`x`) using the two line parameters intercept (`a`) and slope (`b`) with the equation `y = a + b * x`. For these approximations to be meaningful, the dependent variable should take continuous values. The relationship between any two variables satisfying these conditions can be analyzed with simple linear regression. However, the model will only be successful for linearly related data. Some common examples include:
 
 * Predicting housing prices with square footage, number of bedrooms, number of bathrooms, etc.
 * Analyzing sales of a product using pricing or performance information
@@ -28,6 +29,8 @@ In simple linear regression, both the independent and dependent variables must b
 
 // tag::constraints[]
 Because simple linear regression is so straightforward, it can be used with any numeric data pair. The real question is how well the best model fits the data. There are several measurements which attempt to quantify the success of the model. For example, the coefficient of determination (`r^2^`) is the proportion of the variance in the dependent variable that is predictable from the independent variable. A coefficient `r^2^ = 1` indicates that the variance in the dependent variable is entirely predictable from the independent variable (and thus the model is perfect).
+
+image::images/rSquared.png[width=200]
 // end::use-case[]
 
 == Example

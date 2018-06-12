@@ -1,14 +1,14 @@
 = Simple Linear Regression
 
 // tag::introduction[]
-Regression is a statistical tool for investigating the relationships between variables. Simple linear regression is the simplest form of regression; it creates a linear model for the relationship between the dependent variable and a single independent variable. Visually, simple linear regression "draws" a trend line on the scatter plot of two variables that best approximates their linear relationship. The model can be expressed with the two parameters of its line: slope and intercept. This is one of the most popular tools in statistics, and it is frequently used as a predictor for machine learning.
+Regression is a statistical tool for investigating the relationships between variables. Simple linear regression is the simplest form of regression; it creates a linear model for the relationship between the dependent variable and a single independent variable. Visually, simple linear regression "draws" a trend line on the scatter plot of two variables that best approximates their linear relationship. The model can be expressed with the two parameters of its line: slope and intercept. Other models use more parameters for more complex curves. This is one of the most popular tools in statistics, and it is frequently used as a predictor for machine learning.
 // end::introduction[]
 
 == Explanation and history
 
 // tag::explanation[]
 At the core of linear regression is the method of least squares. In this method, the linear trend line is chosen which minimizes the sum of every data point's squared residual (deviation from the model). 
-image::https://en.wikipedia.org/wiki/Linear_least_squares_(mathematics)#/media/File:Linear_regression.svg[Tux,250,350]
+image::images/ols.jpg[width=800]
 The method of least squares was independently discovered by Carl Friedrich-Gauss and Adrien-Marie Legendre in the early 19th century. The linear regression methods used today can be primarily attributed to the work of R.A. Fisher in the 1920s.
 // end::explanation[]
 
@@ -119,6 +119,8 @@ Now the model is ready for further data changes and predictions!
 
 // tag::syntax[]
 
+The simple linear regression procedures were created so that the same procedures may be used for multiple linear regression. Therefore, independent variable must be specified [in brackets] and you must specify number of variables (1) at time of creation as well as the type of model you would like to create ("Simple"). 
+
 If your queries return duplicate values (eg: both directions of the same relationship) then data from the same observation may be added to the model multiple times. This will make your model less accurate. It is recommended that you be careful with queries (eg: specify direction of relationship) or store somewhere in relevant nodes/relationships whether this data has been added to the model. This way you can be sure to select relevant data points which have not yet been added to the model.
 
 // end::syntax[]
@@ -129,4 +131,5 @@ If your queries return duplicate values (eg: both directions of the same relatio
 * https://priceonomics.com/the-discovery-of-statistical-regression/
 * https://en.wikipedia.org/wiki/Regression_analysis
 * https://dzone.com/articles/decision-trees-vs-clustering-algorithms-vs-linear
+* https://bookdown.org/sbikienga/Intro_to_stat_book/introduction-to-simple-linear-regression.html
 // end::references[]

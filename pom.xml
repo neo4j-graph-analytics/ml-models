@@ -4,11 +4,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.neo4j.procedures</groupId>
-    <artifactId>neo4j-ml-procedures</artifactId>
-    <version>3.2.2.1-SNAPSHOT</version>
+    <artifactId>neo4j-ml-models</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
 
     <packaging>jar</packaging>
-    <name>Neo4j ML Procedures</name>
+    <name>Neo4j ML Models</name>
 
     <properties>
         <encoding>UTF-8</encoding>
@@ -105,20 +105,15 @@
         </dependency>
 
         <dependency>
-            <!-- This is used for a utility that lets us start Neo4j with
-                 a specific Procedure, which is nice for writing tests. -->
-            <groupId>org.neo4j.test</groupId>
-            <artifactId>neo4j-harness</artifactId>
-            <version>${neo4j.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <!-- Used to send cypher statements to our procedure. -->
-            <groupId>org.neo4j.driver</groupId>
-            <artifactId>neo4j-java-driver</artifactId>
-            <version>1.5.0</version>
-            <scope>test</scope>
+            <groupId>org.encog</groupId>
+            <artifactId>encog-core</artifactId>
+            <version>3.3.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.commons</groupId>
+                    <artifactId>commons-math3</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
     </dependencies>
@@ -136,15 +131,6 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.1</version>
-                <configuration>
-                    <!-- Neo4j Procedures require Java 8 -->
-                    <source>1.8</source>
-                    <target>1.8</target>
-                </configuration>
             </plugin>
         </plugins>
     </build>

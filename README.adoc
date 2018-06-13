@@ -20,3 +20,12 @@ that can be deployed in the `plugin` directory of your Neo4j instance.
 == License
 
 Apache License V2, see LICENSE
+
+== Next Steps
+
+* Multiple Linear Regression (in progress)
+** Ordinary least squares (OLS)
+** http://www.jstor.org/stable/2347583[Miller updating regression] (OLS)
+** General least squares? (GLS)
+* Logistic Regression
+

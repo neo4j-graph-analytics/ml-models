@@ -4,7 +4,7 @@ This project uses http://commons.apache.org/proper/commons-math/[Apache Commons 
 
 Check out the https://github.com/neo4j-graph-analytics/ml-models/tree/master/asciidoc[docs] for details.
 
-[Note]
+[NOTE]
 This project requires Neo4j 3.2.x
 
 == Building

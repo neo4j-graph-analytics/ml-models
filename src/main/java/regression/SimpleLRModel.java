@@ -40,22 +40,13 @@ public class SimpleLRModel extends LRModel {
 
     @Override
     void add(List<Double> given, double expected) {
-        int givenSize = given.size();
-        if (givenSize == 1) {
-            R.addData(given.get(0), expected);
-        } else {
-            double[] x = LR.convertFromList(given);
-            R.addObservation(x, expected);
-        }
+        for (double d : given) R.addData(d, expected);
         if (R.getN() == 1) this.state = State.training;
         else if (R.getN() > 1) this.state = State.ready;
     }
 
     @Override
     protected void removeData(List<Double> input, double output) {
-        if (input.isEmpty()) {
-            throw new IllegalArgumentException("x is empty, cannot remove any data.");
-        }
         for (double x: input) R.removeData(x, output);
         if (R.getN() == 1) this.state = State.training;
         else if (R.getN() > 1) this.state = State.ready;

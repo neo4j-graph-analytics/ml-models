@@ -18,8 +18,10 @@ public class LR {
     @Procedure(value = "regression.linear.create", mode = Mode.READ)
     @Description("Initialize a linear regression model with 'name' of type 'framework' and store in static memory. " +
             "Indicate whether to include a constant term. Accepted frameworks are 'Simple', 'Miller', and 'OLS'.")
-    public Stream<ModelResult> create(@Name("name") String model, @Name("framework") String framework, @Name("include constant term?")
-                                      boolean constant, @Name("# of independent vars") Long numVars) {
+    public Stream<ModelResult> create(@Name("name") String model,
+                                      @Name(value="framework", defaultValue="Simple") String framework,
+                                      @Name(value="include constant term?", defaultValue="true") boolean constant,
+                                      @Name(value="# of independent vars", defaultValue="1") Long numVars) {
         return Stream.of(LRModel.create(model, framework, constant, numVars.intValue()).asResult());
     }
 
@@ -79,7 +81,8 @@ public class LR {
             "The model must be of type 'Simple' and 'data' must be a byte array. Returns a stream containing the model's " +
             "name (model), type (framework), whether it containes a constant term (hasConstant), number of independent " +
             "variables (numVars), state (state), number of observations (N), and information (info).")
-    public Stream<ModelResult> load(@Name("model") String model, @Name("data") Object data, @Name("framework") String framework) {
+    public Stream<ModelResult> load(@Name("model") String model, @Name("data") Object data,
+                                    @Name(value="framework", defaultValue="Simple") String framework) {
         return Stream.of(LRModel.load(model, data, framework).asResult());
     }
 
@@ -152,6 +155,4 @@ public class LR {
         for (double d : array) list.add(d);
         return list;
     }
-
-
 }

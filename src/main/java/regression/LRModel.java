@@ -41,7 +41,7 @@ public abstract class LRModel {
         LRModel existing = models.remove(model);
         if (existing == null) return new LR.ModelResult(model, Framework.unknown, false, 0,
                 State.unknown, 0);
-        else return new LR.ModelResult(model, existing.framework, existing.hasConstant(), existing.getNumVars(), State.removed, existing.getN());
+        else return existing.asResult();
 
     }
     abstract long getN();

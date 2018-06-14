@@ -13,7 +13,6 @@ public class MillerLRModel extends LRModel{
     private MillerUpdatingRegression R;
     private RegressionResults trained;
     private int numVars;
-    private double[] params;
 
     MillerLRModel(String name, boolean constant, int numVars) {
         super(name, Framework.Miller);
@@ -40,12 +39,10 @@ public class MillerLRModel extends LRModel{
         state = State.training;
     }
 
-
     @Override
     LR.ModelResult train() {
         trained = R.regress();
         double[] parameters = trained.getParameterEstimates();
-        params = parameters;
         state = State.ready;
         return new LR.ModelResult(name, framework, hasConstant(), getNumVars(), state, getN()).withInfo("parameters", LR.doubleArrayToList(parameters));
     }
@@ -54,6 +51,7 @@ public class MillerLRModel extends LRModel{
     double predict(List<Double> given) {
         if (state == State.created || state == State.training) train();
         if (state == State.ready) {
+            double[] params = trained.getParameterEstimates();
             double result;
             if (R.hasIntercept()) {
                 result = params[0];
@@ -64,15 +62,8 @@ public class MillerLRModel extends LRModel{
             }
             return result;
         }
-        throw new RuntimeException("Model in state " + state.name() + " so cannot make predictions.");
+        throw new RuntimeException("Model in state '" + state.name() + "' so cannot make predictions.");
     }
-
-    /*@Override
-    public LR.StatResult stats() {
-        return new LR.StatResult(R.getN(), numVars).withInfo("SSE", trained.getErrorSumSquares(),
-                "rSquared", trained.getRSquared(), "estimates std error", trained.getStdErrorOfEstimates(),
-                "hasIntercept", trained.hasIntercept());
-    }*/
 
     @Override
     Object data() {
@@ -82,7 +73,9 @@ public class MillerLRModel extends LRModel{
     @Override
     LR.ModelResult asResult() {
         LR.ModelResult r = new LR.ModelResult(name, framework, hasConstant(), getNumVars(), state, getN());
-        return trained != null ? r.withInfo("parameters", LR.doubleArrayToList(params), "SSE", trained.getErrorSumSquares(),
-                "rSquared", trained.getRSquared(), "estimatesStdError", trained.getStdErrorOfEstimates()) : r;
+        return trained != null ? r.withInfo("parameters", LR.doubleArrayToList(trained.getParameterEstimates()), "SSE", trained.getErrorSumSquares(),
+                "R squared", trained.getRSquared(), "adjusted R squared", trained.getAdjustedRSquared(), "MSE", trained.getMeanSquareError(),
+                "regression sum squares", trained.getRegressionSumSquares(), "parameters std error", trained.getStdErrorOfEstimates(),
+                "total sum squares", trained.getTotalSumSquares()): r;
     }
 }

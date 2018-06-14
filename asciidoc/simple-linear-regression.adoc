@@ -39,7 +39,7 @@ Let's look at a straightforward example--predicting short term rental listing pr
 .First initialize the model
 [source,cypher]
 ----
-CALL regression.linear.create('airbnb prices', 'Simple', true, 1)
+CALL regression.linear.create('airbnb prices')
 ----
 
 .Then add data point by point
@@ -112,7 +112,7 @@ YIELD model, framework, hasConstant, numVars, state, N, info
 [source,cypher]
 ----
 MATCH (m:ModelNode {model: 'airbnb prices'})
-CALL regression.linear.load('airbnb prices', m.data, 'Simple')
+CALL regression.linear.load('airbnb prices', m.data)
 YIELD model, framework, hasConstant, numVars, state, N, info
 RETURN model, framework, hasConstant, numVars, state, N, info
 ----

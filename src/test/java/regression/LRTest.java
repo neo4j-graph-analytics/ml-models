@@ -3,12 +3,12 @@ package regression;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.List;
-import java.util.Arrays;
 
-import org.junit.After;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.Assert;
+
 import static org.junit.Assert.*;
 
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -16,6 +16,7 @@ import org.neo4j.graphdb.*;
 import org.neo4j.kernel.impl.proc.Procedures;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestGraphDatabaseFactory;
+import org.neo4j.graphdb.QueryExecutionException;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
@@ -23,18 +24,27 @@ import org.apache.commons.math3.stat.regression.SimpleRegression;
 
 public class LRTest {
 
-    private GraphDatabaseService db;
+    private static GraphDatabaseService db;
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeClass
+    public static void setUp() throws Exception {
         db = new TestGraphDatabaseFactory().newImpermanentDatabase();
         Procedures procedures = ((GraphDatabaseAPI) db).getDependencyResolver().resolveDependency(Procedures.class);
         procedures.registerProcedure(LR.class);
         procedures.registerFunction(LR.class);
+
+        //create known relationships for times 1, 2, 3
+        db.execute("CREATE (:Node {id:1}) - [:WORKS_FOR {time:1.0, progress:1.345}] -> " +
+                "(:Node {id:2}) - [:WORKS_FOR {time:2.0, progress:2.596}] -> " +
+                "(:Node {id:3}) - [:WORKS_FOR {time:3.0, progress:3.259}] -> (:Node {id:4})");
+
+        //create unknown relationships for times 4, 5
+        db.execute("CREATE (:Node {id:5}) -[:WORKS_FOR {time:4.0}] -> " +
+                "(:Node {id:6}) - [:WORKS_FOR {time:5.0}] -> (:Node {id:7})");
     }
 
-    @After
-    public void tearDown() throws Exception {
+    @AfterClass
+    public static void tearDown() throws Exception {
         db.shutdown();
     }
 
@@ -54,41 +64,34 @@ public class LRTest {
         }
     }
 
-    @Test
-    public void regression() throws Exception {
-        //create known relationships for times 1, 2, 3
-        db.execute("CREATE (:Node {id:1}) - [:WORKS_FOR {time:1.0, progress:1.345}] -> " +
-                "(:Node {id:2}) - [:WORKS_FOR {time:2.0, progress:2.596}] -> " +
-                "(:Node {id:3}) - [:WORKS_FOR {time:3.0, progress:3.259}] -> (:Node {id:4})");
+    private void create() {
+        db.execute("CALL regression.linear.create('work and progress', 'Simple', true, 1)").close();
+    }
 
-        //create unknown relationships for times 4, 5
-        db.execute("CREATE (:Node {id:5}) -[:WORKS_FOR {time:4.0}] -> " +
-                "(:Node {id:6}) - [:WORKS_FOR {time:5.0}] -> (:Node {id:7})");
-
-        //initialize the models
-        db.execute("CALL regression.linear.create('work and progress', 'Simple', true, 1)");
-
+    private void add() {
         //add known data
         Result r = db.execute("MATCH () - [r:WORKS_FOR] -> () WHERE exists(r.time) AND exists(r.progress) CALL " +
                 "regression.linear.add('work and progress', [r.time], r.progress) RETURN r");
         //these rows are computed lazily so we must iterate through all rows to ensure all data points are added to the model
         exhaust(r);
+    }
+    private void remove() {
+        Result r = db.execute("MATCH () - [r:WORKS_FOR] -> () WHERE exists(r.time) AND exists(r.progress) CALL " +
+                "regression.linear.remove('work and progress', [r.time], r.progress) RETURN r");
+        exhaust(r);
+    }
 
-        //check that the correct info is stored in the model
-        Map<String, Object> info = db.execute("CALL regression.linear.info('work and progress') YIELD model, state, framework, numVars, info " +
-                "RETURN model, state, framework, numVars, info").next();
-        assertTrue(info.get("model").equals("work and progress"));
-        assertTrue(info.get("state").equals("ready"));
-        assertTrue(info.get("framework").equals("Simple"));
-        assertThat(info.get("numVars"), equalTo(1L));
+    private void delete() {
+        db.execute("CALL regression.linear.delete('work and progress')").close();
+    }
 
-        //store predictions
+    private void storePredictions() {
         String storePredictions = "MATCH (:Node)-[r:WORKS_FOR]->(:Node) WHERE exists(r.time) AND NOT exists(r.progress) " +
                 "SET r.predictedProgress = regression.linear.predict('work and progress', [r.time])";
         db.execute(storePredictions);
+    }
 
-        //check that predictions are correct
-
+    private void checkPredictions() {
         SimpleRegression R = new SimpleRegression();
         R.addData(1.0, 1.345);
         R.addData(2.0, 2.596);
@@ -103,67 +106,152 @@ public class LRTest {
         Result result = db.execute(gatherPredictedValues);
 
         check(result, expected);
+    }
 
+    @Test
+    public void testCreate() throws Exception {
+        Map<String, Object> info = db.execute("CALL regression.linear.create('work and progress', 'Simple', true, 1)").next();
+        assertTrue(info.get("model").equals("work and progress"));
+        assertTrue(info.get("framework").equals("Simple"));
+        assertTrue((boolean) info.get("hasConstant"));
+        assertEquals(1L, info.get("numVars"));
+        assertTrue(info.get("state").equals("created"));
+        assertEquals(0L, info.get("N"));
+        delete();
+    }
+
+    @Test
+    public void testCreateDefaults() throws Exception {
+        Map<String, Object> info = db.execute("CALL regression.linear.create('work and progress')").next();
+        assertTrue(info.get("model").equals("work and progress"));
+        assertTrue(info.get("framework").equals("Simple"));
+        assertTrue((boolean) info.get("hasConstant"));
+        assertEquals(1L, info.get("numVars"));
+        assertTrue(info.get("state").equals("created"));
+        assertEquals(0L, info.get("N"));
+        delete();
+    }
+
+    @Test
+    public void testCreateErrors() throws Exception {
+        try{
+            db.execute("CALL regression.linear.create('work and progress', 'complicated', true, 1)").close();
+            Assert.fail("Expecting QueryExecutionException because 'complicated' is not a valid model type.");
+        } catch (QueryExecutionException ex) {
+            //expected
+        }
+        try {
+            create();
+            create();
+            Assert.fail("Expecting QueryExecutionException because model with same name created twice.");
+        } catch (QueryExecutionException ex) {
+            //expected
+        }
+        delete();
+        try {
+            db.execute("CALL regression.linear.create('work and progress', 'Simple', true, 342)").close();
+        } catch (Exception ex) {
+            Assert.fail("Create 'Simple' failed because input 342 independent variables, but 'Simple' model should" +
+                    " automatically be created with 1 independent variable.");
+        }
+        delete();
+    }
+
+    @Test
+    public void testAdd() throws Exception {
+        create();
+        add();
+        Map<String, Object> info = db.execute("CALL regression.linear.info('work and progress') YIELD N RETURN N").next();
+        assertEquals(3L, info.get("N"));
+        delete();
+    }
+
+    @Test
+    public void testAddErrors() throws Exception {
+        try {
+            db.execute("CALL regression.linear.add('work and progress', [1], 2)");
+            Assert.fail("Expecting QueryExecutionException because tried to add data to model that doesn't exist.");
+        } catch (QueryExecutionException ex) {
+            //expected
+        }
+        delete();
+    }
+
+    @Test
+    public void testRemove() throws Exception {
+        create();
+        add();
+        remove();
+        Map<String, Object> info = db.execute("CALL regression.linear.info('work and progress') YIELD N RETURN N").next();
+        assertEquals(0L, info.get("N"));
+        delete();
+    }
+
+    @Test
+    public void testAddMErrors() throws Exception {
+        create();
+        try {
+            db.execute("CALL regression.linear.addM('work and progress', [[1]], [2, 3])");
+            Assert.fail("Expecting QueryExecutionException because size of given not equal to size of expected.");
+        } catch (QueryExecutionException ex) {
+            //expected
+        }
+        delete();
+    }
+
+    @Test
+    public void testPredict() throws Exception {
+        create();
+        add();
+        storePredictions();
+        checkPredictions();
+        delete();
+    }
+
+    @Test
+    public void testSerialize() throws Exception {
+        create();
+        add();
         //serialize the model
         Map<String, Object> serial = db.execute("RETURN regression.linear.data('work and progress') as data").next();
         Object data = serial.get("data");
-
-        //check that the byte[] model returns same predictions as the model stored in the procedure
-        SimpleRegression storedR = (SimpleRegression) LR.convertFromBytes((byte[]) data);
-        assertThat(storedR.predict(4.0), equalTo(expected.get(4.0)));
-        assertThat(storedR.predict(5.0), equalTo(expected.get(5.0)));
-
-        //delete model then re-create using serialization
-        db.execute("CALL regression.linear.delete('work and progress')");
+        delete();
         Map<String, Object> params = new HashMap<>();
         params.put("data", data);
         db.execute("CALL regression.linear.load('work and progress', $data, 'Simple')", params);
 
-        //remove data from relationship between nodes 1 and 2
-        r = db.execute("MATCH (:Node {id:1})-[r:WORKS_FOR]->(:Node {id:2}) CALL regression.linear.remove('work " +
-                "and progress', [r.time], r.progress) return r");
-        exhaust(r);
+        storePredictions();
+        checkPredictions();
+        delete();
+    }
 
-        //create a new relationship between nodes 7 and 8
-        db.execute("MATCH (n7:Node {id:7}) MERGE (n7)-[:WORKS_FOR {time:6.0, progress:5.870}]->(:Node {id:8})");
+    @Test
+    public void testSerializeErrors() throws Exception {
+        create();
+        Map<String, Object> serial = db.execute("RETURN regression.linear.data('work and progress') as data").next();
+        Object data = serial.get("data");
+        Map<String, Object> params = new HashMap<>();
+        params.put("data", data);
+        try {
+            db.execute("CALL regression.linear.load('work and progress', $data, 'Simple')", params);
+            Assert.fail("Expecting QueryExecutionException because model 'work and progress' already exists.");
+        } catch (QueryExecutionException ex) {
+            //expected
+        }
+        try {
+            db.execute("CALL regression.linear.load('work and progress', $data, 'Miller')", params);
+            Assert.fail("Expecting QueryExecutionException because tried to load SimpleRegression into Miller model.");
+        } catch (QueryExecutionException ex) {
+            //expected
+        }
+        delete();
+    }
 
-        //add data from new relationship to model
-        r = db.execute("MATCH (:Node {id:7})-[r:WORKS_FOR]->(:Node {id:8}) CALL regression.linear.add('work " +
-                "and progress', [r.time], r.progress) RETURN r.time");
-        //again must iterate through rows
-        exhaust(r);
-
-        //map new model on all relationships with unknown progress
-        db.execute(storePredictions);
-
-        //replicate the creation and updates of the model
-        R.removeData(1.0, 1.345);
-        R.addData(6.0, 5.870);
-        expected.put(4.0, R.predict(4.0));
-        expected.put(5.0, R.predict(5.0));
-
-        //make sure predicted values are correct
-        result = db.execute(gatherPredictedValues);
-        check(result, expected);
-
-        //test addM procedure for adding multiple data points
-        List<List<Double>> points = Arrays.asList(Arrays.asList(7.0), Arrays.asList(8.0));
-        List<Double> observed = Arrays.asList(6.900, 9.234);
-        params.put("points", points);
-        params.put("observed", observed);
-
-        db.execute("CALL regression.linear.addM('work and progress', $points, $observed)", params);
-        db.execute(storePredictions);
-        R.addData(7.0, 6.900);
-        R.addData(8.0, 9.234);
-        expected.put(4.0, R.predict(4.0));
-        expected.put(5.0, R.predict(5.0));
-        result = db.execute(gatherPredictedValues);
-
-        check(result, expected);
-
-        db.execute("CALL regression.linear.delete('work and progress')").close();
-
-
+    @Test
+    public void testTrain() throws Exception {
+        //train doesn't really do anything
+        create();
+        db.execute("CALL regression.linear.train('work and progress')");
+        delete();
     }
 }

@@ -122,7 +122,7 @@ public class LRTest {
 
     @Test
     public void testCreateDefaults() throws Exception {
-        Map<String, Object> info = db.execute("CALL regression.linear.create('work and progress')").next();
+        Map<String, Object> info = db.execute("CALL regression.linear.create('work and progress', 'Simple')").next();
         assertTrue(info.get("model").equals("work and progress"));
         assertTrue(info.get("framework").equals("Simple"));
         assertTrue((boolean) info.get("hasConstant"));

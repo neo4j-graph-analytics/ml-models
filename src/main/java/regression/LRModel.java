@@ -2,6 +2,7 @@ package regression;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.*;
 import java.lang.Double;
+import org.neo4j.logging.Log;
 
 public abstract class LRModel {
 
@@ -9,6 +10,10 @@ public abstract class LRModel {
     final String name;
     State state;
     Framework framework;
+    List<List<Double>> xTrain = new ArrayList<>();
+    List<Double> yTrain = new ArrayList<>();
+    List<List<Double>> xTest = new ArrayList<>();
+    List<Double> yTest = new ArrayList<>();
 
     static LRModel create(String model, String framework, boolean constant, int numVars) {
         switch(framework) {
@@ -41,20 +46,45 @@ public abstract class LRModel {
         LRModel existing = models.remove(model);
         if (existing == null) return new LR.ModelResult(model, Framework.unknown, false, 0,
                 State.unknown, 0);
-        else return existing.asResult();
+        else return new LR.ModelResult(model, existing.framework, existing.hasConstant(), existing.getNumVars(), State.removed, existing.getN());
 
     }
     abstract long getN();
 
-    abstract long getNumVars();
+    abstract int getNumVars();
 
     abstract boolean hasConstant();
 
-    abstract void add(List<Double> given, double expected);
+    void add(List<Double> given, double expected, String type, Log log) {
+        switch(type) {
+            case "train": addTrain(given, expected, log); break;
+            case "test": addTest(given, expected, log); break;
+            default: throw new IllegalArgumentException("Cannot add data of unrecognized type: " + type);
+        }
+    }
 
-    void addMany(List<List<Double>> given, List<Double> expected) {
-        if (given.size() != expected.size()) throw new IllegalArgumentException("Length of given does not match length of expected.");
-        for (int i = 0; i < given.size(); i++) add(given.get(i), expected.get(i));
+    boolean checkData(List<Double> given, double expected) {
+        if (given == null || given.size() != getNumVars() || given.contains(null)) return false;
+        return true;
+    }
+
+    abstract void addTrain(List<Double> given, double expected, Log log);
+
+    abstract void addTest(List<Double> given, double expected, Log log);
+
+    void addMany(List<List<Double>> given, List<Double> expected, String type, Log log) {
+        if (given.size() != expected.size())
+            throw new IllegalArgumentException("Length of given does not match length of expected.");
+        switch(type) {
+            case "train":
+                for (int i = 0; i < given.size(); i++) addTrain(given.get(i), expected.get(i), log);
+                break;
+            case "test":
+                for (int i = 0; i < given.size(); i++) addTest(given.get(i), expected.get(i), log);
+                break;
+            default:
+                throw new IllegalArgumentException("Cannot add data of unrecognized type: " + type);
+        }
     }
 
     abstract double predict(List<Double> given);
@@ -69,18 +99,30 @@ public abstract class LRModel {
     abstract Object data();
 
     //default error because only simple linear regression allows for removal of data points
-    void removeData(List<Double> given, double expected) {
+    void removeData(List<Double> given, double expected, Log log) {
         throw new IllegalArgumentException("Cannot remove data from framework type: " + this.framework);
     }
 
     abstract LR.ModelResult train();
 
-    protected enum State {created, training, ready, removed, unknown}
+    abstract void test();
+
+    abstract void copy(String source);
+
+    protected enum State {created, training, testing, ready, removed, unknown}
 
     protected enum Framework {Simple, Miller, OLS, GLS, unknown}
 
     LR.ModelResult asResult() {
         return new LR.ModelResult(this.name, this.framework, this.hasConstant(), this.getNumVars(), this.state, this.getN());
+    }
+
+    void clear(String type) {
+        switch(type) {
+            case "all": xTrain.clear(); yTrain.clear(); xTest.clear(); yTest.clear(); break;
+            case "test": xTest.clear(); yTest.clear(); break;
+            case "train": xTrain.clear(); yTrain.clear(); break;
+        }
     }
 
 }

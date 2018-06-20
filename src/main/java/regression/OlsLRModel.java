@@ -3,6 +3,7 @@ import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.neo4j.logging.Log;
 
 /**
  * Created by Lauren on 6/5/18.
@@ -27,13 +28,13 @@ public class OlsLRModel extends LRModel {
     }
 
     @Override
-    long getNumVars() { return numVars; }
+    int getNumVars() { return numVars; }
 
     @Override
     boolean hasConstant() { return !R.isNoIntercept(); }
 
     @Override
-    void add(List<Double> given, double expected) {
+    void addTrain(List<Double> given, double expected, Log log) {
         if (given.size() != numVars) throw new IllegalArgumentException("incorrect number of variables in given.");
         data.add(expected);
         data.addAll(given);
@@ -69,7 +70,7 @@ public class OlsLRModel extends LRModel {
 
     @Override
     LR.ModelResult train() {
-        double[] dataArray = LR.convertFromList(data);
+        double[] dataArray = LR.doubleListToArray(data);
         R.newSampleData(dataArray, numObs, numVars);
         params = R.estimateRegressionParameters();
         this.state = State.ready;
@@ -84,6 +85,21 @@ public class OlsLRModel extends LRModel {
     LR.ModelResult asResult() {
         LR.ModelResult r = new LR.ModelResult(name, framework, hasConstant(), numVars, state, getN());
         return params != null ? r.withInfo("parameters", LR.doubleArrayToList(params), "rSquared", R.calculateRSquared()) : r;
+    }
+
+    @Override
+    void addTest(List<Double> given, double expected, Log log) {
+
+    }
+
+    @Override
+    void test() {
+
+    }
+
+    @Override
+    void copy(String string) {
+
     }
 
 }

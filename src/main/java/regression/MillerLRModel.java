@@ -8,6 +8,7 @@ import org.apache.commons.math3.stat.regression.MillerUpdatingRegression;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.math3.stat.regression.RegressionResults;
+import org.neo4j.logging.Log;
 
 public class MillerLRModel extends LRModel{
     private MillerUpdatingRegression R;
@@ -26,17 +27,32 @@ public class MillerLRModel extends LRModel{
     }
 
     @Override
-    long getNumVars() { return numVars; }
+    int getNumVars() { return numVars; }
 
     @Override
     boolean hasConstant() {return R.hasIntercept();}
 
     @Override
-    void add(List<Double> given, double expected) {
+    void addTrain(List<Double> given, double expected, Log log) {
         if (given.size() != numVars) throw new IllegalArgumentException("Incorrect number of variables in given.");
-        double[] givenArr = LR.convertFromList(given);
+        double[] givenArr = LR.doubleListToArray(given);
         R.addObservation(givenArr, expected);
         state = State.training;
+    }
+
+    @Override
+    void addTest(List<Double> given, double expected, Log log) {
+
+    }
+
+    @Override
+    void test() {
+
+    }
+
+    @Override
+    void copy(String string) {
+
     }
 
     @Override

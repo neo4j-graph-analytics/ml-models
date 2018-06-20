@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.math3.stat.regression.GLSMultipleLinearRegression;
 import org.apache.commons.math3.stat.correlation.Covariance;
+import org.neo4j.logging.Log;
 
 //NOT CURRENTLY WORKING, DEVELOPMENT PAUSED//
 
@@ -34,13 +35,13 @@ public class GlsLRModel extends LRModel {
     }
 
     @Override
-    long getNumVars() { return numVars; }
+    int getNumVars() { return numVars; }
 
     @Override
     boolean hasConstant() {return !R.isNoIntercept();}
 
     @Override
-    public void add(List<Double> given, double expected) {
+    public void addTrain(List<Double> given, double expected, Log log) {
         if (given.size() != numVars) throw new IllegalArgumentException("incorrect number of variables in given.");
         data.add(given);
         response.add(expected);
@@ -82,7 +83,7 @@ public class GlsLRModel extends LRModel {
                 dataArray[i][j] = data.get(i).get(j);
         }
         RealMatrix data = new BlockRealMatrix(dataArray);
-        double[] obs = LR.convertFromList(response);
+        double[] obs = LR.doubleListToArray(response);
         Covariance c = new Covariance(data);
         RealMatrix m = c.getCovarianceMatrix();
         double[][] covariance = m.getData();
@@ -94,5 +95,20 @@ public class GlsLRModel extends LRModel {
             paramResult.add(params[i]);
         }
         return new LR.ModelResult(name, framework, hasConstant(), getNumVars(), state, getN()).withInfo("parameters", paramResult);
+    }
+
+    @Override
+    void addTest(List<Double> given, double expected, Log log) {
+
+    }
+
+    @Override
+    void test() {
+
+    }
+
+    @Override
+    void copy(String string) {
+
     }
 }

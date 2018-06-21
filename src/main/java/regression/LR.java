@@ -161,6 +161,8 @@ public class LR {
         }
     }
 
+    //Helper Functions//
+
     //Serializes the object into a byte array for storage
     static byte[] convertToBytes(Object object) throws IOException {
         try (ByteArrayOutputStream bos = new ByteArrayOutputStream();

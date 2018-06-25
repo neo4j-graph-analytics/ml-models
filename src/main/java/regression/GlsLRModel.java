@@ -30,9 +30,14 @@ public class GlsLRModel extends LRModel {
         this.numVars = numVars;
     }
     @Override
-    protected long getN() {
-        return numObs;
+    protected long getNTest() {
+        return 0;
     }
+
+    @Override long getNTrain() {return numObs;}
+
+    @Override GlsLRModel clearTest() {return this;}
+    @Override GlsLRModel clearAll() {return this;}
 
     @Override
     int getNumVars() { return numVars; }
@@ -76,7 +81,7 @@ public class GlsLRModel extends LRModel {
     }*/
 
     @Override
-    public LR.ModelResult train() {
+    public GlsLRModel train() {
         double[][] dataArray = new double[this.numObs][this.numVars];
         for (int i = 0; i < numObs; i++) {
             for (int j = 0; j < numVars; j++)
@@ -94,7 +99,7 @@ public class GlsLRModel extends LRModel {
         for (int i = 0; i < numVars; i++) {
             paramResult.add(params[i]);
         }
-        return new LR.ModelResult(name, framework, hasConstant(), getNumVars(), state, getN()).withInfo("parameters", paramResult);
+        return this;
     }
 
     @Override
@@ -103,12 +108,22 @@ public class GlsLRModel extends LRModel {
     }
 
     @Override
-    void test() {
+    GlsLRModel test() {
+        return this;
+    }
+
+    @Override
+    GlsLRModel copy(String string) {
+        return this;
+    }
+
+    @Override
+    void removeTest(List<Double> input, double output, Log log) {
 
     }
 
     @Override
-    void copy(String string) {
+    void removeTrain(List<Double> input, double output, Log log) {
 
     }
 }

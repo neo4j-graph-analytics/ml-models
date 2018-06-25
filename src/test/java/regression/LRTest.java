@@ -4,10 +4,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.Assert;
+import org.junit.*;
 
 import static org.junit.Assert.*;
 
@@ -46,6 +43,11 @@ public class LRTest {
     @AfterClass
     public static void tearDown() throws Exception {
         db.shutdown();
+    }
+
+    @After
+    public void deleteModel() {
+        delete();
     }
 
     private void exhaust(Iterator r) {
@@ -116,8 +118,7 @@ public class LRTest {
         assertTrue((boolean) info.get("hasConstant"));
         assertEquals(1L, info.get("numVars"));
         assertTrue(info.get("state").equals("created"));
-        assertEquals(0L, info.get("N"));
-        delete();
+        assertEquals(0L, info.get("nTrain"));
     }
 
     @Test
@@ -128,8 +129,7 @@ public class LRTest {
         assertTrue((boolean) info.get("hasConstant"));
         assertEquals(1L, info.get("numVars"));
         assertTrue(info.get("state").equals("created"));
-        assertEquals(0L, info.get("N"));
-        delete();
+        assertEquals(0L, info.get("nTrain"));
     }
 
     @Test
@@ -154,16 +154,32 @@ public class LRTest {
             Assert.fail("Create 'Simple' failed because input 342 independent variables, but 'Simple' model should" +
                     " automatically be created with 1 independent variable.");
         }
-        delete();
     }
 
     @Test
     public void testAdd() throws Exception {
         create();
         add();
-        Map<String, Object> info = db.execute("CALL regression.linear.info('work and progress') YIELD N RETURN N").next();
-        assertEquals(3L, info.get("N"));
-        delete();
+        Map<String, Object> info = db.execute("CALL regression.linear.info('work and progress') YIELD nTrain RETURN nTrain").next();
+        assertEquals(3L, info.get("nTrain"));
+    }
+
+    @Test
+    public void testAddTest() throws Exception {
+        create();
+        add();
+        Result r = db.execute("MATCH () - [r:WORKS_FOR] -> () WHERE exists(r.time) AND exists(r.progress) CALL " +
+                "regression.linear.add('work and progress', [r.time], r.progress, 'test') RETURN r");
+        exhaust(r);
+        Map<String, Object> info = db.execute("CALL regression.linear.test('work and progress')").next();
+        Map<String, Object> trainInfo = (Map<String, Object>) info.get("trainInfo");
+        Map<String, Object> testInfo = (Map<String, Object>) info.get("testInfo");
+        assertEquals((double) trainInfo.get("SSE"), (double) testInfo.get("SSE"), 0.000001);
+        assertEquals((double) trainInfo.get("RSquared"), (double) testInfo.get("RSquared"), 0.000001);
+        assertEquals((double) trainInfo.get("MSE"), (double) testInfo.get("MSE"), 0.000001);
+        assertEquals((double) trainInfo.get("SSR"), (double) testInfo.get("SSR"), 0.000001);
+        assertEquals((double) trainInfo.get("SST"), (double) testInfo.get("SST"), 0.000001);
+
     }
 
     @Test
@@ -174,7 +190,6 @@ public class LRTest {
         } catch (QueryExecutionException ex) {
             //expected
         }
-        delete();
     }
 
     @Test
@@ -182,9 +197,8 @@ public class LRTest {
         create();
         add();
         remove();
-        Map<String, Object> info = db.execute("CALL regression.linear.info('work and progress') YIELD N RETURN N").next();
-        assertEquals(0L, info.get("N"));
-        delete();
+        Map<String, Object> info = db.execute("CALL regression.linear.info('work and progress') YIELD nTrain RETURN nTrain").next();
+        assertEquals(0L, info.get("nTrain"));
     }
 
     @Test
@@ -196,7 +210,6 @@ public class LRTest {
         } catch (QueryExecutionException ex) {
             //expected
         }
-        delete();
     }
 
     @Test
@@ -205,7 +218,6 @@ public class LRTest {
         add();
         storePredictions();
         checkPredictions();
-        delete();
     }
 
     @Test
@@ -222,7 +234,6 @@ public class LRTest {
 
         storePredictions();
         checkPredictions();
-        delete();
     }
 
     @Test
@@ -244,7 +255,6 @@ public class LRTest {
         } catch (QueryExecutionException ex) {
             //expected
         }
-        delete();
     }
 
     @Test
@@ -252,6 +262,5 @@ public class LRTest {
         //train doesn't really do anything
         create();
         db.execute("CALL regression.linear.train('work and progress')");
-        delete();
     }
 }

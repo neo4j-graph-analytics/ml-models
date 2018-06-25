@@ -10,10 +10,8 @@ public abstract class LRModel {
     final String name;
     State state;
     Framework framework;
-    List<List<Double>> xTrain = new ArrayList<>();
-    List<Double> yTrain = new ArrayList<>();
-    List<List<Double>> xTest = new ArrayList<>();
-    List<Double> yTest = new ArrayList<>();
+
+    /////////CREATE/////////
 
     static LRModel create(String model, String framework, boolean constant, int numVars) {
         switch(framework) {
@@ -25,7 +23,6 @@ public abstract class LRModel {
         }
     }
 
-
     LRModel(String model, Framework framework) {
         if (models.containsKey(model))
             throw new IllegalArgumentException("Model " + model + " already exists, please remove it first");
@@ -35,25 +32,7 @@ public abstract class LRModel {
         models.put(name, this);
     }
 
-    static LRModel from(String name) {
-        LRModel model = models.get(name);
-        if (model != null) return model;
-        throw new IllegalArgumentException("No valid LR-Model " + name);
-    }
-    //abstract LR.StatResult stats();
-
-    static LR.ModelResult removeModel(String model) {
-        LRModel existing = models.remove(model);
-        if (existing == null) return new LR.ModelResult(model, Framework.unknown, false, 0,
-                State.unknown, 0);
-        else return new LR.ModelResult(model, existing.framework, existing.hasConstant(), existing.getNumVars(), State.removed, existing.getN());
-
-    }
-    abstract long getN();
-
-    abstract int getNumVars();
-
-    abstract boolean hasConstant();
+    //////////TRAIN///////////
 
     void add(List<Double> given, double expected, String type, Log log) {
         switch(type) {
@@ -62,16 +41,6 @@ public abstract class LRModel {
             default: throw new IllegalArgumentException("Cannot add data of unrecognized type: " + type);
         }
     }
-
-    boolean checkData(List<Double> given, double expected) {
-        if (given == null || given.size() != getNumVars() || given.contains(null)) return false;
-        return true;
-    }
-
-    abstract void addTrain(List<Double> given, double expected, Log log);
-
-    abstract void addTest(List<Double> given, double expected, Log log);
-
     void addMany(List<List<Double>> given, List<Double> expected, String type, Log log) {
         if (given.size() != expected.size())
             throw new IllegalArgumentException("Length of given does not match length of expected.");
@@ -87,7 +56,69 @@ public abstract class LRModel {
         }
     }
 
+    void remove(List<Double> given, double expected, String type, Log log) {
+        switch(type) {
+            case "train": removeTrain(given, expected, log); break;
+            case "test": removeTest(given, expected, log); break;
+            default: throw new IllegalArgumentException("Cannot remove data of unrecognized type: " + type);
+        }
+    }
+
+    void removeMany(List<List<Double>> given, List<Double> expected, String type, Log log) {
+        if (given.size() != expected.size())
+            throw new IllegalArgumentException("Length of given does not match length of expected.");
+        switch(type) {
+            case "train":
+                for (int i = 0; i < given.size(); i++) removeTrain(given.get(i), expected.get(i), log);
+                break;
+            case "test":
+                for (int i = 0; i < given.size(); i++) removeTest(given.get(i), expected.get(i), log);
+                break;
+            default:
+                throw new IllegalArgumentException("Cannot add data of unrecognized type: " + type);
+        }
+    }
+
+    abstract void addTrain(List<Double> given, double expected, Log log);
+
+    abstract void removeTrain(List<Double> given, double expected, Log log);
+
+    abstract LRModel copy(String source);
+
+    LRModel clear(String type) {
+        switch(type) {
+            case "all": return clearAll();
+            case "test": return clearTest();
+            default: throw new IllegalArgumentException("Cannot clear data of type " + type);
+        }
+    }
+    abstract LRModel clearAll();
+
+    abstract LRModel train();
+
+    //////////TEST///////////
+
+    abstract void addTest(List<Double> given, double expected, Log log);
+    abstract void removeTest(List<Double> given, double expected, Log log);
+    abstract LRModel test();
+    abstract LRModel clearTest();
+
+    //////////PREDICT/////////
+
     abstract double predict(List<Double> given);
+
+    /////////STORE/DELETE///////////
+
+    abstract Object data();
+
+
+    static LR.ModelResult removeModel(String model) {
+        LRModel existing = models.remove(model);
+        if (existing == null) return new LR.ModelResult(model, Framework.unknown, false, 0,
+                State.unknown, 0, 0);
+        else return new LR.ModelResult(model, existing.framework, existing.hasConstant(), existing.getNumVars(), State.removed, existing.getNTrain(), existing.getNTest());
+
+    }
 
     static LRModel load(String model, Object data, String framework) {
         switch (framework) {
@@ -96,33 +127,58 @@ public abstract class LRModel {
         }
     }
 
-    abstract Object data();
+    //////////INFO//////////
 
-    //default error because only simple linear regression allows for removal of data points
-    void removeData(List<Double> given, double expected, Log log) {
-        throw new IllegalArgumentException("Cannot remove data from framework type: " + this.framework);
+    static LRModel from(String name) {
+        LRModel model = models.get(name);
+        if (model != null) return model;
+        throw new IllegalArgumentException("No valid LR-Model " + name);
     }
 
-    abstract LR.ModelResult train();
+    abstract long getNTrain();
 
-    abstract void test();
+    abstract long getNTest();
 
-    abstract void copy(String source);
+    abstract int getNumVars();
+
+    abstract boolean hasConstant();
+
+    LR.ModelResult asResult() {
+        return new LR.ModelResult(this.name, this.framework, this.hasConstant(), this.getNumVars(), this.state, this.getNTrain(), this.getNTest());
+    }
 
     protected enum State {created, training, testing, ready, removed, unknown}
 
-    protected enum Framework {Simple, Miller, OLS, GLS, unknown}
+    protected enum Framework {Simple, Multiple, OLS, GLS, unknown}
 
-    LR.ModelResult asResult() {
-        return new LR.ModelResult(this.name, this.framework, this.hasConstant(), this.getNumVars(), this.state, this.getN());
+    /////////UTILS////////
+
+    boolean dataInvalid(List<Double> given) {
+        return (given == null || given.size() != getNumVars() || given.contains(null));
     }
 
-    void clear(String type) {
-        switch(type) {
-            case "all": xTrain.clear(); yTrain.clear(); xTest.clear(); yTest.clear(); break;
-            case "test": xTest.clear(); yTest.clear(); break;
-            case "train": xTrain.clear(); yTrain.clear(); break;
-        }
-    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 }

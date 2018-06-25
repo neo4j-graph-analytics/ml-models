@@ -23,8 +23,13 @@ public class OlsLRModel extends LRModel {
         this.numVars = numVars;
     }
     @Override
-    protected long getN() {
+    long getNTrain() {
         return numObs;
+    }
+
+    @Override
+    long getNTest() {
+        return 0;
     }
 
     @Override
@@ -69,7 +74,7 @@ public class OlsLRModel extends LRModel {
     }*/
 
     @Override
-    LR.ModelResult train() {
+    OlsLRModel train() {
         double[] dataArray = LR.doubleListToArray(data);
         R.newSampleData(dataArray, numObs, numVars);
         params = R.estimateRegressionParameters();
@@ -78,13 +83,23 @@ public class OlsLRModel extends LRModel {
         for (int i = 0; i < numVars; i++) {
             paramList.add(params[i]);
         }
-        return new LR.ModelResult(name, framework, hasConstant(), getNumVars(), state, getN()).withInfo("parameters", paramList);
+        return this;
+    }
+
+    @Override
+    OlsLRModel clearTest() {
+        return this;
+    }
+
+    @Override
+    OlsLRModel clearAll() {
+        return this;
     }
 
     @Override
     LR.ModelResult asResult() {
-        LR.ModelResult r = new LR.ModelResult(name, framework, hasConstant(), numVars, state, getN());
-        return params != null ? r.withInfo("parameters", LR.doubleArrayToList(params), "rSquared", R.calculateRSquared()) : r;
+        LR.ModelResult r = new LR.ModelResult(name, framework, hasConstant(), numVars, state, getNTrain(), getNTest());
+        return params != null ? r.withTrainInfo("parameters", LR.doubleArrayToList(params), "rSquared", R.calculateRSquared()) : r;
     }
 
     @Override
@@ -93,13 +108,21 @@ public class OlsLRModel extends LRModel {
     }
 
     @Override
-    void test() {
-
+    OlsLRModel test() {
+        return this;
     }
 
     @Override
-    void copy(String string) {
-
+    OlsLRModel copy(String string) {
+        return this;
     }
 
+    @Override
+    void removeTest(List<Double> input, double output, Log log) {
+
+    }
+    @Override
+    void removeTrain(List<Double> input, double output, Log log) {
+
+    }
 }

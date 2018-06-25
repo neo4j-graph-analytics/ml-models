@@ -9,6 +9,7 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.After;
 import static org.junit.Assert.*;
 
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -43,6 +44,11 @@ public class MLRTest {
         //create unknown relationships for times 4, 5
         db.execute("CREATE (:Node {id:5}) -[:WORKS_FOR {time:4.0}] -> " +
                 "(:Node {id:6}) - [:WORKS_FOR {time:5.0}] -> (:Node {id:7})");
+    }
+
+    @After
+    public void deleteModel() {
+        delete();
     }
 
     @AfterClass
@@ -109,12 +115,11 @@ public class MLRTest {
     public void testCreate() throws Exception {
         Map<String, Object> info = db.execute("CALL regression.linear.create('work and progress', 'Miller', true, 1)").next();
         assertTrue(info.get("model").equals("work and progress"));
-        assertTrue(info.get("framework").equals("Miller"));
+        assertTrue(info.get("framework").equals("Multiple"));
         assertTrue((boolean) info.get("hasConstant"));
         assertEquals(1L, info.get("numVars"));
         assertTrue(info.get("state").equals("created"));
-        assertEquals(0L, info.get("N"));
-        delete();
+        assertEquals(0L, info.get("nTrain"));
     }
 
     @Test
@@ -132,16 +137,14 @@ public class MLRTest {
         } catch (QueryExecutionException ex) {
             //expected
         }
-        delete();
     }
 
     @Test
     public void testAdd() throws Exception {
         create();
         add();
-        Map<String, Object> info = db.execute("CALL regression.linear.info('work and progress') YIELD N RETURN N").next();
-        assertEquals(3L, info.get("N"));
-        delete();
+        Map<String, Object> info = db.execute("CALL regression.linear.info('work and progress') YIELD nTrain RETURN nTrain").next();
+        assertEquals(3L, info.get("nTrain"));
     }
 
     @Test
@@ -152,7 +155,6 @@ public class MLRTest {
         } catch (QueryExecutionException ex) {
             //expected
         }
-        delete();
     }
 
     @Test
@@ -164,16 +166,15 @@ public class MLRTest {
         } catch (QueryExecutionException ex) {
             //expected
         }
-        delete();
     }
 
     @Test
     public void testPredict() throws Exception {
         create();
         add();
+        db.execute("CALL regression.linear.train('work and progress')");
         storePredictions();
         checkPredictions();
-        delete();
     }
 
     @Test
@@ -181,7 +182,6 @@ public class MLRTest {
         create();
         add();
         db.execute("CALL regression.linear.train('work and progress')");
-        delete();
     }
     /*
     @Test

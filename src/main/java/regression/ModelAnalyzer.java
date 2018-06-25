@@ -9,13 +9,16 @@ class ModelAnalyzer {
     private boolean hasIntercept;
     private long n;
     private int rank;
+    private boolean ready;
 
     Map<String, Double> statistics; //rsquared, adj rsquared, sse, mse, ssr, sst
 
-    ModelAnalyzer(double[] params, boolean hasIntercept, int rank, double sst, double sse, long n) {
+    ModelAnalyzer() { statistics = new HashMap<>(); ready = false;}
+
+    void newTestData(double[] params, boolean hasIntercept, int rank, double sst, double sse, long nTest) {
         this.parameters = params;
         this.hasIntercept = hasIntercept;
-        this.n = n;
+        this.n = nTest;
         this.rank = rank;
         this.statistics = new HashMap<>();
 
@@ -26,11 +29,20 @@ class ModelAnalyzer {
         statistics.put("MSE", sse/(n - rank));
         statistics.put("SSR", ssr);
         statistics.put("SST", sst);
-
+        ready = true;
     }
 
+    void clear() {
+        ready = false;
+        statistics.clear();
+    }
 
-    Map<String, Double> getStatistics() { return statistics; }
+    boolean isReady() {return ready;}
+
+
+    Map<String, Double> getStatistics() {
+        return statistics;
+    }
     double[] getParameters() {return parameters;}
     boolean isHasIntercept() {return hasIntercept;}
     long getN() {return n;}

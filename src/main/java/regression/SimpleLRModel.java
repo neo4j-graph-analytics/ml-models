@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
-import org.bytedeco.javacpp.annotation.Name;
 
 public class SimpleLRModel extends LRModel {
     private SimpleRegression R;

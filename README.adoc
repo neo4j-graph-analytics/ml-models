@@ -2,20 +2,24 @@
 
 This project uses http://commons.apache.org/proper/commons-math/[Apache Commons Math] to build, update, and store linear regression models in Neo4j.
 
-Check out the https://github.com/neo4j-graph-analytics/ml-models/tree/master/asciidoc[docs] for details.
-
 [NOTE]
-This project requires Neo4j 3.2.x
+This project requires Neo4j 3.x+ 
 
-== Building
+== Installation
+
+Download the https://github.com/neo4j-graph-analytics/ml-models/releases[latest relase-jar].
+Copy it into `$NEO4J_HOME/plugins` and restart your database.
+
+Check out the https://neo4j-graph-analytics.github.io/ml-models/[docs] for details on how to use the procedures.
+
+== Building Manually
 
 This project uses maven. To build a jar-file with the procedure in this
 project, simply package the project with maven and place the package in your local repo:
 
     mvn clean package
 
-This will produce a jar-file,`target/neo4j-ml-models-1.0.0-SNAPSHOT.jar`,
-that can be deployed in the `plugin` directory of your Neo4j instance.
+This will produce a jar-file,`target/neo4j-ml-models-*.jar`, that can be copied in the `plugins` directory of your Neo4j instance.
 
 == License
 

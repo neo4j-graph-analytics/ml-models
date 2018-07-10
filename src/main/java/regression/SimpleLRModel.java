@@ -4,17 +4,15 @@
 
 package regression;
 
-import org.apache.commons.math3.linear.RealMatrix;
-import org.apache.commons.math3.stat.correlation.Covariance;
-import org.apache.commons.math3.stat.descriptive.rank.Percentile;
-import org.apache.commons.math3.stat.regression.RegressionResults;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
-import org.apache.commons.math3.stat.descriptive.moment.StandardDeviation;
 import org.neo4j.logging.Log;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+<<<<<<< HEAD
 import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
+=======
+>>>>>>> stats for lr no intercept
 
 public class SimpleLRModel extends LRModel {
     private SimpleRegression R;

@@ -36,8 +36,8 @@ public class SimpleLRModel extends LRModel {
         super(name, Framework.Simple);
         try {
             R = (SimpleRegression) LR.convertFromBytes((byte[]) data);
-            if (R.getN() <= 1) this.state = State.created;
-            else if (R.getN() > 1) this.state = State.training;
+            if (R.getN() == 0) this.state = State.created;
+            else this.state = State.training;
             tester = new ModelAnalyzer();
         }
         catch (Exception e) { throw new IllegalArgumentException("data is invalid, cannot load model");}
@@ -118,7 +118,8 @@ public class SimpleLRModel extends LRModel {
             ybar += dy / fact1;
             double rdev = expected - R.getIntercept() - given.get(0) * R.getSlope();
             sse += rdev * rdev;
-            sst += fact2 * dy * dy;
+            if (hasConstant()) sst += fact2 * dy * dy;
+            else sst += expected * expected;
             nTest++;
             state = State.testing;
         }

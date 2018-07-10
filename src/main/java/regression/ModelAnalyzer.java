@@ -11,7 +11,7 @@ class ModelAnalyzer {
     private int rank;
     private boolean ready;
 
-    Map<String, Double> statistics; //rsquared, adj rsquared, sse, mse, ssr, sst
+    Map<String, Double> statistics; //rsquared, adj rsquared, sse, mse, sst
 
     ModelAnalyzer() { statistics = new HashMap<>(); ready = false;}
 
@@ -22,12 +22,12 @@ class ModelAnalyzer {
         this.rank = rank;
         this.statistics = new HashMap<>();
 
-        double ssr = sst - sse;
-        statistics.put("RSquared", ssr/sst);
-        statistics.put("adjRSquared", 1 - sse*(n - 1)/(sst*(n - rank)));
+        double r2 = 1 - sse/sst;
+        statistics.put("RSquared", r2);
+        if (hasIntercept) statistics.put("adjRSquared", 1 - sse*(n - 1)/(sst*(n - rank)));
+        else statistics.put("adjRSquared", 1 - (1 - r2)*(n/(n - rank)));
         statistics.put("SSE", sse);
         statistics.put("MSE", sse/(n - rank));
-        statistics.put("SSR", ssr);
         statistics.put("SST", sst);
         ready = true;
     }
@@ -51,7 +51,6 @@ class ModelAnalyzer {
     double getAdjustedRSquared() {return statistics.get("adjRSquared");}
     double getSumSquaredErrors() {return statistics.get("SSE");}
     double getMeanSquareError() {return statistics.get("MSE");}
-    double getRegressionSumSquares() {return statistics.get("SSR");}
     double getTotalSumSquares() {return statistics.get("SST");}
 
 

@@ -5,7 +5,6 @@
 package regression;
 import org.apache.commons.math3.stat.regression.MillerUpdatingRegression;
 
-import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.math3.stat.regression.RegressionResults;
 import org.neo4j.logging.Log;
@@ -81,10 +80,16 @@ public class MillerLRModel extends LRModel{
             double dy = expected - ybar;
             ybar += dy / fact1;
             double[] params = trained.getParameterEstimates();
-            double rdev = expected - params[0];
-            for (int i = 1; i < params.length; i++) rdev -= params[i]*given.get(i - 1);
+            double rdev = expected;
+            if (hasConstant()) {
+                rdev -= params[0];
+                for (int i = 1; i < params.length; i++) rdev -= params[i] * given.get(i - 1);
+                sst += fact2 * dy * dy;
+            } else {
+                for (int i = 0; i < params.length; i++) rdev -= params[i] * given.get(i);
+                sst += expected * expected;
+            }
             sse += rdev * rdev;
-            sst += fact2 * dy * dy;
             nTest++;
             state = State.testing;
         }

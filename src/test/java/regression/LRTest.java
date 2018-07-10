@@ -177,7 +177,6 @@ public class LRTest {
         assertEquals((double) trainInfo.get("SSE"), (double) testInfo.get("SSE"), 0.000001);
         assertEquals((double) trainInfo.get("RSquared"), (double) testInfo.get("RSquared"), 0.000001);
         assertEquals((double) trainInfo.get("MSE"), (double) testInfo.get("MSE"), 0.000001);
-        assertEquals((double) trainInfo.get("SSR"), (double) testInfo.get("SSR"), 0.000001);
         assertEquals((double) trainInfo.get("SST"), (double) testInfo.get("SST"), 0.000001);
 
     }

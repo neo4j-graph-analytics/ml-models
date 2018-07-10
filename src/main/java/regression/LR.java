@@ -107,7 +107,6 @@ public class LR {
     public Stream<ModelResult> test(@Name("model") String model) {
         return Stream.of(LRModel.from(model).test().asResult());
     }
-    //Note that currently testing is only valid for models with intercept term
 
     ///////READY//////////
 

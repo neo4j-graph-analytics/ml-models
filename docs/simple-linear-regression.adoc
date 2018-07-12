@@ -1,15 +1,15 @@
 = Simple Linear Regression
 
 // tag::introduction[]
-Simple linear regression is a linear approach for modeling the relationship between two variables. The *dependent* variable, "__y__", is the quantity we would like to predict. We predict the dependent variable using the known value of the *independent* variable, "__x__". The goal of simple linear regression is to create a function that takes the independent variable as input and outputs a prediction for the value of the dependent variable. Remember algebra class? Since the model is a line, writing it in the form `y = a + b*x` allows it to be uniquely represented by two parameters: slope (b) and intercept (a). 
+Simple linear regression is a linear approach for modeling the relationship between two variables. The *dependent* variable, "__y__", is the quantity we would like to predict. We predict the dependent variable using the known value of the *independent* variable, "__x__". The goal of simple linear regression is to create a function that takes the independent variable as input and outputs a prediction for the value of the dependent variable. Remember algebra class? Since the model is a line, writing it in the form `y = a + b*x` allows it to be uniquely represented by two parameters: slope (**b**) and intercept (**a**). 
 
-Visually, there is a plot of several (x, y) data points. Simple linear regression finds the line through the points that _best "fits" the data_. This is one of the most popular tools in statistics, and it is frequently used as a predictor for machine learning.
+Visually, there is a plot of several (__x__, __y__) data points. Simple linear regression finds the line through the points that _best "fits" the data_. This is one of the most popular tools in statistics, and it is frequently used as a predictor for machine learning.
 // end::introduction[]
 
 == Explanation and history
 
 // tag::explanation[]
-At the core of linear regression is the method of least squares. In this method, we find the coefficients *a* and *b* that minimize the sum of squared differences between each observation's *actual* y-value and its *predicted* y-value according to the linear model `y = a + b*x`. 
+At the core of linear regression is the method of least squares. In this method, we find the coefficients *a* and *b* that minimize the sum of squared differences between each observation's *actual* __y__-value and its *predicted* __y__-value according to the linear model `y = a + b*x`. 
 
 image::images/ols.jpg[link="https://bookdown.org/sbikienga/Intro_to_stat_book/introduction-to-simple-linear-regression.html",width=650]
 
@@ -19,7 +19,7 @@ The method of least squares was independently discovered by Carl Friedrich-Gauss
 == Use-cases
 
 // tag::use-case[]
-In simple linear regression, both the independent and dependent variables must be numeric. The dependent variable (`y`) can then be expressed in terms of the independent variable (`x`) using the two line parameters intercept (`a`) and slope (`b`) with the equation `y = a + b * x`. For these approximations to be meaningful, the dependent variable should take continuous values. The relationship between any two variables satisfying these conditions can be analyzed with simple linear regression. However, the model will only be successful for linearly related data. Some common examples include:
+In simple linear regression, both the independent and dependent variables must be numeric. The dependent variable (__y__) can then be expressed in terms of the independent variable (__x__) using the two line parameters intercept (**a**) and slope (**b**) with the equation `y = a + b * x`. For these approximations to be meaningful, the dependent variable should take continuous values. The relationship between any two variables satisfying these conditions can be analyzed with simple linear regression. However, the model will only be successful for linearly related data. Some common examples include:
 
 * Predicting housing prices with square footage, number of bedrooms, number of bathrooms, etc.
 * Analyzing sales of a product using pricing or performance information
@@ -170,7 +170,7 @@ Now the model is ready for further data changes and predictions!
 
 // tag::syntax[]
 
-The simple linear regression procedures were created so that the same procedures may be used for multiple linear regression. Therefore, independent variable must be specified [in brackets] and you must specify number of variables (1) at time of creation as well as the type of model you would like to create ("Simple"). 
+The simple linear regression procedures were created so that the same procedures may be used for multiple linear regression. Therefore, independent variable must be specified [in brackets] and you may specify number of variables (or let it take default value 1) at time of creation as well as the type of model you would like to create ("Simple"). 
 
 If your queries return duplicate values (eg: both directions of the same relationship) then data from the same observation may be added to the model multiple times. This will make your model less accurate. It is recommended that you be careful with queries (eg: specify direction of relationship) or store somewhere in relevant nodes/relationships whether this data has been added to the model. This way you can be sure to select relevant data points which have not yet been added to the model.
 

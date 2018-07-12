@@ -1,13 +1,15 @@
 = Simple Linear Regression
 
 // tag::introduction[]
-Regression is a statistical tool for investigating the relationships between variables. Simple linear regression is the simplest form of regression; it creates a linear model for the relationship between the dependent variable and a single independent variable. Visually, simple linear regression "draws" a trend line on the scatter plot of two variables that best approximates their linear relationship. The model can be expressed with the two parameters of its line: slope and intercept. Other models use more parameters for more complex curves. This is one of the most popular tools in statistics, and it is frequently used as a predictor for machine learning.
+Simple linear regression is a linear approach for modeling the relationship between two variables. The *dependent* variable, "__y__", is the quantity we would like to predict. We predict the dependent variable using the known value of the *independent* variable, "__x__". The goal of simple linear regression is to create a function that takes the independent variable as input and outputs a prediction for the value of the dependent variable. Remember algebra class? Since the model is a line, writing it in the form `y = a + b*x` allows it to be uniquely represented by two parameters: slope (b) and intercept (a). 
+
+Visually, there is a plot of several (x, y) data points. Simple linear regression finds the line through the points that _best "fits" the data_. This is one of the most popular tools in statistics, and it is frequently used as a predictor for machine learning.
 // end::introduction[]
 
 == Explanation and history
 
 // tag::explanation[]
-At the core of linear regression is the method of least squares. In this method, the linear trend line is chosen which minimizes the sum of every data point's squared residual (deviation from the model). 
+At the core of linear regression is the method of least squares. In this method, we find the coefficients *a* and *b* that minimize the sum of squared differences between each observation's *actual* y-value and its *predicted* y-value according to the linear model `y = a + b*x`. 
 
 image::images/ols.jpg[link="https://bookdown.org/sbikienga/Intro_to_stat_book/introduction-to-simple-linear-regression.html",width=650]
 
@@ -27,7 +29,7 @@ In simple linear regression, both the independent and dependent variables must b
 == Constraints
 
 // tag::constraints[]
-Because simple linear regression is so straightforward, it can be used with any numeric data pair. The real question is how well the best model fits the data. There are several measurements which attempt to quantify the success of the model. For example, the coefficient of determination (`r^2^`) is the proportion of the variance in the dependent variable that is predictable from the independent variable. A coefficient `r^2^ = 1` indicates that the variance in the dependent variable is entirely predictable from the independent variable (and thus the model is perfect).
+Because simple linear regression is so straightforward, it can be used with any numeric data pair. The real question is how well the best model fits the data. There are several measurements which attempt to quantify the success of the model, or how well it "fits" the data. For example, the _coefficient of determination (R^2^)_ is the proportion of the variance in the dependent variable that is predictable from the independent variable. A coefficient R^2^ = 1 indicates that the variance in the dependent variable is entirely predictable from the independent variable (and thus the model is perfect).
 
 image::images/rSquared.png[width=400]
 // end::use-case[]
@@ -36,28 +38,62 @@ image::images/rSquared.png[width=400]
 
 Let's look at a straightforward example--predicting short term rental listing prices using the listing's number of bedrooms. Run `:play http://guides.neo4j.com/listings` and follow the import statements to load Will Lyon's rental listing graph.
 
-.First initialize the model
+.First split the data set and label 75% as training data (used to create the model)
 [source,cypher]
 ----
-CALL regression.linear.create('airbnb prices')
+MATCH (list:Listing)-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:'78704'})
+WHERE exists(list.bedrooms) AND exists(list.price)
+WITH regression.linear.split(collect(id(list)), 0.75) AS trainingIDs
+MATCH (list:Listing) WHERE id(list) in trainingIDs
+SET list:Train
 ----
 
-.Then add data point by point
+.And add the :Test label to the remaining 25% of listing nodes in the data set (used to test the model on unseen data)
 [source,cypher]
 ----
 MATCH (list:Listing)-[n:IN_NEIGHBORHOOD]->(hood:Neighborhood {neighborhood_id:'78704'})
-WHERE exists(list.bedrooms)
-    AND exists(list.price)
-    AND NOT list:Trained
-CALL regression.linear.add('airbnb prices', [list.bedrooms], list.price)
-SET list:Trained
-RETURN *
+WHERE exists(list.bedrooms) AND exists(list.price) AND NOT list:Train
+SET list:Test
 ----
+
+.Initialize the model
+[source,cypher]
+----
+CALL regression.linear.create('rental prices', 'Simple')
+----
+
+.Then add training data point by point
+[source,cypher]
+----
+MATCH (list:Listing:Train) WHERE NOT list:Seen
+CALL regression.linear.add('rental price', [list.bedrooms], list.price)
+SET list:Seen
+----
+
+.Check the model's name, framework, constant term, number of variables, state, number of data points, and statistics
+[source,cypher]
+----
+CALL regression.linear.info('rental prices')
+----
+
+.Add testing data to check the model's performance on unseen data
+[source,cypher]
+----
+MATCH (list:Listing:Test) WHERE NOT list:Seen
+CALL regression.linear.add('rental prices', [list.bedrooms], list.price, 'test')
+SET list:Seen
+----
+
+.Perform testing calculations
+[source,cypher]
+----
+CALL regression.linear.test('rental prices')
+---- 
 
 .Next predict price for a four-bedroom listing
 [source,cypher]
 ----
-RETURN regression.linear.predict('airbnb prices', [4])
+RETURN regression.linear.predict('rental prices', [4])
 ----
 
 .Or make and store many predictions
@@ -65,15 +101,15 @@ RETURN regression.linear.predict('airbnb prices', [4])
 ----
 MATCH (list:Listing)-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:'78704'})
 WHERE exists(list.bedrooms) AND NOT exists(list.price)
-SET list.predicted_price = regression.linear.predict('airbnb prices', [list.bedrooms])
+SET list.predicted_price = regression.linear.predict('rental prices', [list.bedrooms])
 ----
 
 .You can remove data
 [source,cypher]
 ----
 MATCH (list:Listing {listing_id:'2467149'})-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:'78704'})
-CALL regression.linear.remove('airbnb prices', [list.bedrooms], list.price)
-REMOVE list:Trained
+CALL regression.linear.remove('rental prices', [list.bedrooms], list.price)
+REMOVE list:Seen
 ----
 
 .Add some data from a nearby neighborhood
@@ -82,39 +118,50 @@ REMOVE list:Trained
 MATCH (list:Listing)-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:'78701'})
 WHERE exists(list.bedrooms)
     AND exists(list.price)
-    AND NOT list:Trained
-CALL regression.linear.add('airbnb prices', [list.bedrooms], list.price) 
-SET list:Trained RETURN list
+    AND NOT list:Seen
+CALL regression.linear.add('rental prices', [list.bedrooms], list.price) 
+SET list:Seen RETURN list
 ----
 
-.Check out the number of data points in your model
+.Copy data from another model
 [source,cypher]
 ----
-CALL regression.linear.info('airbnb prices')
-YIELD model, framework, hasConstant, numVars, state, N, info
+CALL regression.linear.copy('another model', 'rental prices')
+----
+
+.Note that at any point, you can clear all data from the model
+[source,cypher]
+----
+CALL regression.linear.clear('rental prices')
+----
+
+.Or only clear testing data
+[source,cypher]
+----
+CALL regression.linear.clear('rental prices', 'test')
 ----
 
 .Make sure that before shutting down the database, you store the model in the graph or externally
 [source,cypher]
 ----
-MERGE (m:ModelNode {model: 'airbnb prices'})
-SET m.data = regression.linear.data('airbnb prices')
+MERGE (m:ModelNode {model: 'rental prices'})
+SET m.data = regression.linear.data('rental prices')
 ----
 
 .Delete the model
 [source,cypher]
 ----
-CALL regression.linear.delete('airbnb prices')
-YIELD model, framework, hasConstant, numVars, state, N, info
+CALL regression.linear.delete('rental prices')
+YIELD model, framework, hasConstant, numVars, state, nTrain, nTest, trainInfo, testInfo
 ----
 
 .And then when you restart the database, load the model from the graph back into the procedure
 [source,cypher]
 ----
-MATCH (m:ModelNode {model: 'airbnb prices'})
-CALL regression.linear.load('airbnb prices', m.data)
-YIELD model, framework, hasConstant, numVars, state, N, info
-RETURN model, framework, hasConstant, numVars, state, N, info
+MATCH (m:ModelNode {model: 'rental prices'})
+CALL regression.linear.load('rental prices', m.data)
+YIELD model, framework, hasConstant, numVars, state, nTrain, nTest, trainInfo, testInfo
+RETURN model, framework, hasConstant, numVars, state, nTrain, nTest, trainInfo, testInfo
 ----
 
 Now the model is ready for further data changes and predictions!

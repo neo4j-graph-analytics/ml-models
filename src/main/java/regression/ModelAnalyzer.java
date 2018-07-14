@@ -1,7 +1,5 @@
 package regression;
 import java.util.HashMap;
-import java.util.List;
-import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import java.util.Map;
 
 class ModelAnalyzer {

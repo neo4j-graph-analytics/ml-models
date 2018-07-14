@@ -1,7 +1,5 @@
 package regression;
 
-import org.apache.commons.math3.stat.descriptive.moment.StandardDeviation;
-import org.apache.commons.math3.stat.descriptive.rank.Percentile;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.*;

@@ -21,6 +21,13 @@
     </properties>
 
     <dependencies>
+        <!-- https://mvnrepository.com/artifact/com.github.johnlangford/vw-jni -->
+        <dependency>
+            <groupId>com.github.johnlangford</groupId>
+            <artifactId>vw-jni</artifactId>
+            <version>8.4.1</version>
+        </dependency>
+
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-math3</artifactId>

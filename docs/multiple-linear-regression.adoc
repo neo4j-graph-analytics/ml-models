@@ -1,0 +1,6 @@
+= Multiple Linear Regression
+
+// tag::introduction[]
+Multiple linear regression is similar to simple linear regression in that both create a linear model for the relationship between variables. The difference is that for multiple linear regression, there are greater than one inputs, or *independent variables (*x~1~*, *x~2~*, ...) used to predict the value of the output, or *dependent* variable (*y*). 
+
+Visually, for _p_ independent variables (*x~1~*, *x~2~*, ... , *x~p~*) there is a plot of several data points in a _p + 1_ dimensional space. Multiple linear regression finds the line through the points that _best "fits" the data_. This line can be represented by _p + 1_ parameters β~0~, β~1~, ... , β~p~ so that given an input, the output is approximated by the equation y = β~0~ + β~1~**x~1~** ... + β~p~**x~p~**.   

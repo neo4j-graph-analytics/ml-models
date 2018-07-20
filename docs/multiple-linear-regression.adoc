@@ -172,6 +172,8 @@ Multiple linear regression is missing some of the functionality that simple line
 
 // end::syntax[]
 
+== References
+
 // tag::references[]
 
 * http://www.stat.yale.edu/Courses/1997-98/101/linmult.htm

@@ -16,7 +16,7 @@ public abstract class LRModel {
     static LRModel create(String model, String framework, boolean constant, int numVars) {
         switch(framework) {
             case "Simple": return new SimpleLRModel(model, constant);
-            case "Miller": return new MillerLRModel(model, constant, numVars);
+            case "Multiple": return new MillerLRModel(model, constant, numVars);
             case "OLS": return new OlsLRModel(model, constant, numVars);
             case "GLS": throw new IllegalArgumentException("GLS not yet implemented");
             default: throw new IllegalArgumentException("Invalid model type: " + framework);

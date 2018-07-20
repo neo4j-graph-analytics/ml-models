@@ -1,6 +1,174 @@
-= Multiple Linear Regression
+= Multiple Linear Regression  
 
 // tag::introduction[]
-Multiple linear regression is similar to simple linear regression in that both create a linear model for the relationship between variables. The difference is that for multiple linear regression, there are greater than one inputs, or *independent variables (*x~1~*, *x~2~*, ...) used to predict the value of the output, or *dependent* variable (*y*). 
+Multiple linear regression is similar to simple linear regression in that both create a linear model for the relationship between variables. The difference is that for multiple linear regression, there are _greater than one_ inputs, or *independent* variables (__x__~1~, __x__~2~, ...) used to predict the value of the output, or *dependent* variable (_y_). 
 
-Visually, for _p_ independent variables (*x~1~*, *x~2~*, ... , *x~p~*) there is a plot of several data points in a _p + 1_ dimensional space. Multiple linear regression finds the line through the points that _best "fits" the data_. This line can be represented by _p + 1_ parameters β~0~, β~1~, ... , β~p~ so that given an input, the output is approximated by the equation y = β~0~ + β~1~**x~1~** ... + β~p~**x~p~**.   
+Visual understanding of multiple linear regression is a bit more challenging and depends on the number of independent variables. Let _p_ be the number of independent variables. If _p_ = 1, these points lie on a standard 2-D coordinate system (with an x and y axis) and multiple linear regression (acting the same as simple linear regression in this special case) finds the *line* through the points that _best "fits" the data_. If _p_ = 2, these points lie in a 3-D coordinate system (with x, y, and z axes) and multiple linear regression finds the *plane* that best fits the data points. 
+
+image::images/mlr.png[link="https://www.mathworks.com/help/stats/regress.html",width=600]
+
+For greater numbers of independent variables, visual understanding is more abstract. For _p_ independent variables (__x__~1~, __x__~2~, ... , __x__~p~) there is a plot of several data points in a _p + 1_ dimensional space. The regression model has _p_ dimensions. What really matters is that this linear model can be represented by _p + 1_ parameters **β**~0~, **β**~1~, ... , **β**~p~ so that given an input, the output is approximated by the equation `_y_ = **β**~0~ + **β**~1~__x__~1~ ... + **β**~p~__x__~p~`.
+// end::introduction[]
+
+== Explanation and history
+
+// tag::explanation[]
+Just like simple linear regression, multiple linear regression uses the method of least squares to find parameters that minimize the sum of squared differences between each observations's *actual* _y_-value and its *predicted* _y_-value. 
+
+The method of least squares was independently discovered by Carl Friedrich-Gauss and Adrien-Marie Legendre in the early 19th century. The linear regression methods used today can be primarily attributed to the work of R.A. Fisher in the 1920s.
+// end::explanation[]
+
+== Constraints
+
+// tag::constraints[]
+These procedures use the method of _ordinary least squares_ (OLS). This method makes several assumptions:
+* There is a linear relationship between the dependent and independent variables 
+* There is a random sampling of observations
+** The sample taken to create the model must be drawn randomly from the population, not conveniently selected. 
+* The number of observations taken to train the model should be greater than the number of parameters to be estimated
+* Independent variables should impact dependent variables (and not the other way around). The relationship between independent and dependent variables should be a causal relationship, not a correlation in which each influences the other.
+* No multi-collinearity
+** There should be no linear relationship between the independent variables. In other words, there should *not* be a strong correlation between any two independent variables. For cases in which independent variables are correlated, you must use _general least squares_ (GLS)    
+// end::constraints[]
+
+== Use-cases
+
+// tag::use-case[]
+* Analyzing performance of product sales with pricing information, risk parameters
+* Determine effects of marketing, pricing, and promotions on sales
+* Assess risk in financial services and insurance domain
+* Study engine performance from test data in automobiles
+* Calculate causal relationships between parameters in biological systems
+* Predict house prices with size of houses, number of rooms, etc.
+// end::use-case[]
+
+== Example
+
+Let's expand on the example we used for simple linear regression--predicting short term rental listing prices using information about the listing. Run `:play http://guides.neo4j.com/listings` and follow the import statements to load Will Lyon's rental listing graph. Here we'll use both the number of bedrooms and number of bathrooms to predict listing price.
+
+.First split the data set and label 75% as training data (used to create the model)
+[source,cypher]
+----
+MATCH (list:Listing)-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:'78704'})
+WHERE exists(list.bedrooms) AND exists(list.price) AND exists(list.bathrooms)
+WITH regression.linear.split(collect(id(list)), 0.75) AS trainingIDs
+MATCH (list:Listing) WHERE id(list) in trainingIDs
+SET list:Train
+----
+
+.And add the :Test label to the remaining 25% of listing nodes in the data set (used to test the model on unseen data)
+[source,cypher]
+----
+MATCH (list:Listing)-[n:IN_NEIGHBORHOOD]->(hood:Neighborhood {neighborhood_id:'78704'})
+WHERE exists(list.bedrooms) AND exists(list.price) AND exists(list.bathrooms) AND NOT list:Train
+SET list:Test
+----
+
+.Initialize the model
+[source,cypher]
+----
+CALL regression.linear.create('rental prices', 'Multiple', true, 2)
+----
+
+.Then add training data point by point
+[source,cypher]
+----
+MATCH (list:Listing:Train) WHERE NOT list:Seen
+CALL regression.linear.add('rental prices', [list.bedrooms, list.bathrooms], list.price)
+SET list:Seen
+----
+
+.And perform training calculations
+[source,cypher]
+----
+CALL regression.linear.train('rental prices')
+----
+
+.Check the model's name, framework, constant term, number of variables, state, number of data points, and statistics
+[source,cypher]
+----
+CALL regression.linear.info('rental prices')
+----
+
+.Add testing data to check the model's performance on unseen data
+[source,cypher]
+----
+MATCH (list:Listing:Test) WHERE NOT list:Seen
+CALL regression.linear.add('rental prices', [list.bedrooms, list.bathrooms], list.price, 'test')
+SET list:Seen
+----
+
+.Perform testing calculations
+[source,cypher]
+----
+CALL regression.linear.test('rental prices')
+---- 
+
+.Next predict price for a four-bedroom, two bathrooms listing available 
+[source,cypher]
+----
+RETURN regression.linear.predict('rental prices', [4, 2])
+----
+
+.Or make and store many predictions
+[source,cypher]
+----
+MATCH (list:Listing)-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:'78704'})
+WHERE exists(list.bedrooms) AND exists(list.bathrooms) AND NOT exists(list.price)
+SET list.predicted_price = regression.linear.predict('rental prices', [list.bedrooms, list.bathrooms])
+----
+
+.Add some data from a nearby neighborhood
+[source,cypher]
+----
+MATCH (list:Listing)-[:IN_NEIGHBORHOOD]->(:Neighborhood {neighborhood_id:'78701'})
+WHERE exists(list.bedrooms)
+    AND exists(list.bathrooms)
+    AND exists(list.price)
+    AND NOT list:Seen
+CALL regression.linear.add('rental prices', [list.bedrooms, list.bathrooms], list.price) 
+SET list:Seen RETURN list
+----
+
+.Note that at any point, you can clear all data from the model
+[source,cypher]
+----
+CALL regression.linear.clear('rental prices')
+----
+
+.Or only clear testing data
+[source,cypher]
+----
+CALL regression.linear.clear('rental prices', 'test')
+----
+
+.Store the model's parameters in the graph or externally before shutting down the database
+[source,cypher]
+----
+MERGE (m:ModelNode {model: 'rental prices'})
+SET m.params = regression.linear.data('rental prices')
+----
+
+.Delete the model
+[source,cypher]
+----
+CALL regression.linear.delete('rental prices')
+YIELD model, framework, hasConstant, numVars, state, nTrain, nTest, trainInfo, testInfo
+----
+
+== Syntax
+
+// tag::syntax[]
+Multiple linear regression is missing some of the functionality that simple linear regression implemented.
+* You cannot remove data from the model
+* You cannot copy data from one model to another
+* You cannot store a serialized version of the model in the graph before database shutdown. Instead of returning the serialized byte array, `regression.linear.data` returns the model's parameters (**β**~0~, **β**~1~, ... , **β**~p~). 
+* You should make a call to `regression.linear.train` in order to perform training calculations. This is different than simple lr for which no call to `train` was necessary
+// end::syntax[]
+
+// tag::references[]
+* http://www.stat.yale.edu/Courses/1997-98/101/linmult.htm
+* https://priceonomics.com/the-discovery-of-statistical-regression/
+* https://www.albert.io/blog/key-assumptions-of-ols-econometrics-review/
+* https://dzone.com/articles/decision-trees-vs-clustering-algorithms-vs-linear
+// end::references[]

@@ -13,6 +13,7 @@
     <properties>
         <encoding>UTF-8</encoding>
         <java.version>1.8</java.version>
+        <java.library.path>plugins</java.library.path>
         <project.build.sourceEncoding>${encoding}</project.build.sourceEncoding>
         <project.reporting.outputEncoding>${encoding}</project.reporting.outputEncoding>
         <maven.compiler.source>${java.version}</maven.compiler.source>
@@ -89,6 +90,14 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.19.1</version>
+                <configuration>
+                    <argLine>-Djava.library.path="/Users/laurenshin/vowpal_wabbit/java/target"</argLine>
+                </configuration>
             </plugin>
         </plugins>
     </build>

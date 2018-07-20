@@ -73,7 +73,7 @@ public class MLRTest {
     }
 
     private void create() {
-        db.execute("CALL regression.linear.create('work and progress', 'Miller', true, 1)").close();
+        db.execute("CALL regression.linear.create('work and progress', 'Multiple', true, 1)").close();
     }
 
     private void add() {
@@ -113,7 +113,7 @@ public class MLRTest {
 
     @Test
     public void testCreate() throws Exception {
-        Map<String, Object> info = db.execute("CALL regression.linear.create('work and progress', 'Miller', true, 1)").next();
+        Map<String, Object> info = db.execute("CALL regression.linear.create('work and progress', 'Multiple', true, 1)").next();
         assertTrue(info.get("model").equals("work and progress"));
         assertTrue(info.get("framework").equals("Multiple"));
         assertTrue((boolean) info.get("hasConstant"));

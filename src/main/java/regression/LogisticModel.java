@@ -6,7 +6,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+//THIS IS AN ABANDONED ATTEMPT TO IMPLEMENT LOGISTIC REGRESSION WITH THE VOWPAL WABBIT LIBRARY
+
 public class LogisticModel {
+    static {
+        System.load("/Users/laurenshin/Library/Application Support/Neo4j Desktop/Application/neo4jDatabases/database-4937f2e8-8328-4dcd-826b-102a79630506/installation-3.3.4/plugins/libvw_jni.dylib");
+    }
     static ConcurrentHashMap<String, LogisticModel> models = new ConcurrentHashMap<>();
     final String name;
     final Map<String, DataType> types = new HashMap<>();
@@ -14,6 +19,7 @@ public class LogisticModel {
     final String output;
     final Map<Object, String> outputVals = new HashMap<>();
     private VWScalarLearner learn;
+
 
     //TODO: save model in file
 
@@ -53,14 +59,15 @@ public class LogisticModel {
     //TODO: helper function to transform input map into string
 
     public Object predict(Map<String, Object> inputs, double threshold) {
-        String data = "1";
+        String data = "|";
         for (Map.Entry<String, Object> entry : inputs.entrySet()) {
             switch (types.get(entry.getKey())) {
                 case _class: data = data.concat(" " + entry.getKey() + "=" + entry.getValue().toString());
                 case _float: data = data.concat(" " + entry.getKey() + ":" + entry.getValue().toString());
             }
         }
-        String prediction = (learn.predict(data) >= threshold) ? "1" : "-1";
+        double val = learn.predict(data);
+        String prediction = (val >= threshold) ? "1" : "-1";
         //TODO: clean this up
         for (Object o : outputVals.keySet()) {
             if (outputVals.get(o).equals(prediction)) return o;
@@ -76,6 +83,16 @@ public class LogisticModel {
             //this.offsets.put(key, i++);
         }
         //this.offsets.put(output, i);
+    }
+
+    static void remove(String model) {
+        LogisticModel existing = models.remove(model);
+        if (existing != null) {
+            try {existing.learn.close(); } catch (Exception e) {
+
+            }
+
+        }
     }
 
     enum DataType {

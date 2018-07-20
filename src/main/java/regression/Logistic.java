@@ -33,4 +33,10 @@ public class Logistic {
         LogisticModel lModel = LogisticModel.from(model);
         return lModel.predict(inputs, threshold);
     }
+
+    @Procedure(value="regression.logistic.delete")
+    public void delete(@Name("model") String model) {
+        LogisticModel.remove(model);
+    }
+
 }

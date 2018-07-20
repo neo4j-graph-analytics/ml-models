@@ -22,6 +22,7 @@ The method of least squares was independently discovered by Carl Friedrich-Gauss
 
 // tag::constraints[]
 These procedures use the method of _ordinary least squares_ (OLS). This method makes several assumptions:
+
 * There is a linear relationship between the dependent and independent variables 
 * There is a random sampling of observations
 ** The sample taken to create the model must be drawn randomly from the population, not conveniently selected. 
@@ -29,17 +30,20 @@ These procedures use the method of _ordinary least squares_ (OLS). This method m
 * Independent variables should impact dependent variables (and not the other way around). The relationship between independent and dependent variables should be a causal relationship, not a correlation in which each influences the other.
 * No multi-collinearity
 ** There should be no linear relationship between the independent variables. In other words, there should *not* be a strong correlation between any two independent variables. For cases in which independent variables are correlated, you must use _general least squares_ (GLS)    
+
 // end::constraints[]
 
 == Use-cases
 
 // tag::use-case[]
+
 * Analyzing performance of product sales with pricing information, risk parameters
 * Determine effects of marketing, pricing, and promotions on sales
 * Assess risk in financial services and insurance domain
 * Study engine performance from test data in automobiles
 * Calculate causal relationships between parameters in biological systems
 * Predict house prices with size of houses, number of rooms, etc.
+
 // end::use-case[]
 
 == Example
@@ -160,15 +164,19 @@ YIELD model, framework, hasConstant, numVars, state, nTrain, nTest, trainInfo, t
 
 // tag::syntax[]
 Multiple linear regression is missing some of the functionality that simple linear regression implemented.
+
 * You cannot remove data from the model
 * You cannot copy data from one model to another
 * You cannot store a serialized version of the model in the graph before database shutdown. Instead of returning the serialized byte array, `regression.linear.data` returns the model's parameters (**β**~0~, **β**~1~, ... , **β**~p~). 
 * You should make a call to `regression.linear.train` in order to perform training calculations. This is different than simple lr for which no call to `train` was necessary
+
 // end::syntax[]
 
 // tag::references[]
+
 * http://www.stat.yale.edu/Courses/1997-98/101/linmult.htm
 * https://priceonomics.com/the-discovery-of-statistical-regression/
 * https://www.albert.io/blog/key-assumptions-of-ols-econometrics-review/
 * https://dzone.com/articles/decision-trees-vs-clustering-algorithms-vs-linear
+
 // end::references[]

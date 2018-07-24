@@ -1,38 +1,31 @@
 package regression;
-import vowpalWabbit.learner.VWLearners;
-import vowpalWabbit.learner.VWScalarLearner;
+import org.apache.mahout.classifier.sgd.OnlineLogisticRegression;
+import org.apache.mahout.classifier.sgd.CrossFoldLearner;
+import org.apache.mahout.classifier.sgd.L2;
+import org.apache.mahout.math.DenseVector;
+import org.apache.mahout.math.Vector;
+import org.apache.mahout.ep.State;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-//THIS IS AN ABANDONED ATTEMPT TO IMPLEMENT LOGISTIC REGRESSION WITH THE VOWPAL WABBIT LIBRARY
+import java.util.List;
 
 public class LogisticModel {
-    static {
-        System.load("/Users/laurenshin/Library/Application Support/Neo4j Desktop/Application/neo4jDatabases/database-4937f2e8-8328-4dcd-826b-102a79630506/installation-3.3.4/plugins/libvw_jni.dylib");
-    }
     static ConcurrentHashMap<String, LogisticModel> models = new ConcurrentHashMap<>();
     final String name;
-    final Map<String, DataType> types = new HashMap<>();
-    //final Map<String, Integer> offsets = new HashMap<>();
-    final String output;
-    final Map<Object, String> outputVals = new HashMap<>();
-    private VWScalarLearner learn;
+    private OnlineLogisticRegression learn;
+    boolean hasIntercept;
 
 
-    //TODO: save model in file
+    //TODO: hash names, intercept boolean
 
-    public LogisticModel(String name, Map<String, String> types, String output, Object high, Object low) {
+    public LogisticModel(String name, int numCategories, int numFeatures, boolean hasIntercept) {
         if (models.containsKey(name)) throw new IllegalArgumentException("Model " + name + " already exists, please remove it first.");
 
         this.name = name;
-        this.output = output;
-        initTypes(types, output);
-
-        this.outputVals.put(high, "1");
-        this.outputVals.put(low, "-1");
-        learn = VWLearners.create("--quiet --loss_function logistic");
+        this.hasIntercept = hasIntercept;
+        learn = new OnlineLogisticRegression(numCategories, numFeatures + (hasIntercept ? 1 : 0), new L2(1));
         models.put(name, this);
 
     }
@@ -43,39 +36,17 @@ public class LogisticModel {
         throw new IllegalArgumentException("No valid logistic model " + name);
     }
 
-    public void add(Map<String, Object> inputs, Object output) {
-        String data = outputVals.get(output);
-        if (data == null) return; //if output is not one of two expected outputs, skip this training data
-
-        data = data.concat(" |");
-        for (Map.Entry<String, Object> entry : inputs.entrySet()) {
-            switch (types.get(entry.getKey())) {
-                case _class: data = data.concat(" " + entry.getKey() + "=" + entry.getValue().toString());
-                case _float: data = data.concat(" " + entry.getKey() + ":" + entry.getValue().toString());
-            }
-        }
-        learn.learn(data);
-    }
-    //TODO: helper function to transform input map into string
-
-    public Object predict(Map<String, Object> inputs, double threshold) {
-        String data = "|";
-        for (Map.Entry<String, Object> entry : inputs.entrySet()) {
-            switch (types.get(entry.getKey())) {
-                case _class: data = data.concat(" " + entry.getKey() + "=" + entry.getValue().toString());
-                case _float: data = data.concat(" " + entry.getKey() + ":" + entry.getValue().toString());
-            }
-        }
-        double val = learn.predict(data);
-        String prediction = (val >= threshold) ? "1" : "-1";
-        //TODO: clean this up
-        for (Object o : outputVals.keySet()) {
-            if (outputVals.get(o).equals(prediction)) return o;
-        }
-        return null;
+    public void add(List<Double> inputs, int output, int passes) {
+        Vector v = listToVector(inputs, hasIntercept);
+        for (int pass = 0; pass < passes; pass++) learn.train(output, v);
     }
 
-    protected void initTypes(Map<String, String> types, String output) {
+    public int predict(List<Double> inputs) {
+        Vector v = listToVector(inputs, hasIntercept);
+        return learn.classifyFull(v).maxValueIndex();
+    }
+
+    /*protected void initTypes(Map<String, String> types, String output) {
         //int i = 0;
         for (Map.Entry<String, String> entry : types.entrySet()) {
             String key = entry.getKey();
@@ -83,26 +54,24 @@ public class LogisticModel {
             //this.offsets.put(key, i++);
         }
         //this.offsets.put(output, i);
-    }
+    }*/
 
     static void remove(String model) {
         LogisticModel existing = models.remove(model);
-        if (existing != null) {
-            try {existing.learn.close(); } catch (Exception e) {
-
-            }
-
-        }
+        existing.learn.close();
     }
 
-    enum DataType {
-        _class, _float;
-        public static DataType from(String type) {
-            switch(type.toUpperCase()) {
-                case "CLASS": return DataType._class;
-                case "FLOAT": return DataType._float;
-                default: throw new IllegalArgumentException("Unknown type: " + type);
-            }
+    static Vector listToVector(List<Double> args, boolean withIntercept) {
+        int i; Vector v;
+        if (withIntercept) {
+            v = new DenseVector(args.size() + 1);
+            v.set(0, 1);
+            i = 1;
+        } else {
+            v = new DenseVector(args.size());
+            i = 0;
         }
+        for (Double d : args) v.set(i++, d);
+        return v;
     }
 }

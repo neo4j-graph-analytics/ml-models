@@ -22,13 +22,11 @@
     </properties>
 
     <dependencies>
-        <!-- https://mvnrepository.com/artifact/com.github.johnlangford/vw-jni -->
         <dependency>
-            <groupId>com.github.johnlangford</groupId>
-            <artifactId>vw-jni</artifactId>
-            <version>8.4.1</version>
+            <groupId>org.apache.mahout</groupId>
+            <artifactId>mahout-core</artifactId>
+            <version>0.9</version>
         </dependency>
-
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-math3</artifactId>
@@ -90,14 +88,6 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.19.1</version>
-                <configuration>
-                    <argLine>-Djava.library.path="/Users/laurenshin/vowpal_wabbit/java/target"</argLine>
-                </configuration>
             </plugin>
         </plugins>
     </build>

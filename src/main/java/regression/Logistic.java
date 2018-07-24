@@ -8,6 +8,7 @@ import org.neo4j.procedure.Name;
 import org.neo4j.procedure.UserFunction;
 
 import java.util.Map;
+import java.util.List;
 
 public class Logistic {
     @Context
@@ -16,22 +17,25 @@ public class Logistic {
     @Context
     public Log log;
 
+    //TODO: take priorfunction as input
+
     @Procedure(value="regression.logistic.create")
-    public void create(@Name("name") String model, @Name("types") Map<String, String> types, @Name("output") String output,
-                       @Name("first") Object first, @Name("second") Object second) {
-        new LogisticModel(model, types, output, first, second);
+    public void create(@Name("name") String model, @Name("numCatagories") Long numCatagories, @Name("numFeatures") Long numFeatures,
+                       @Name("hasIntercept") boolean hasIntercept) {
+        new LogisticModel(model, numCatagories.intValue(), numFeatures.intValue(), hasIntercept);
     }
 
+    //TODO: allow user to specify passes, look into issues with multiple passes with same data
     @Procedure(value="regression.logistic.add")
-    public void add(@Name("model") String model, @Name("inputs") Map<String, Object> inputs, @Name("output") Object output) {
+    public void add(@Name("model") String model, @Name("inputs") List<Double> inputs, @Name("output") Long output) {
         LogisticModel lModel = LogisticModel.from(model);
-        lModel.add(inputs, output);
+        lModel.add(inputs, output.intValue(), 1);
     }
 
     @UserFunction(value="regression.logistic.predict")
-    public Object predict(@Name("model") String model, @Name("inputs") Map<String, Object> inputs, @Name("threshold") double threshold) {
+    public long predict(@Name("model") String model, @Name("inputs") List<Double> inputs) {
         LogisticModel lModel = LogisticModel.from(model);
-        return lModel.predict(inputs, threshold);
+        return lModel.predict(inputs);
     }
 
     @Procedure(value="regression.logistic.delete")

@@ -1,19 +1,26 @@
 package regression;
 
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import static org.junit.Assert.*;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.kernel.impl.proc.Procedures;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestGraphDatabaseFactory;
-import org.neo4j.graphdb.Result;
-import vowpalWabbit.learner.VWLearners;
-import vowpalWabbit.learner.VWScalarLearner;
+
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.*;
+
+import static org.neo4j.helpers.collection.MapUtil.map;
+import org.apache.mahout.common.RandomUtils;
 
 public class LogisticTest {
     private static GraphDatabaseService db;
+    //TODO: larger data set, correct random function
 
     @BeforeClass
     public static void setUp() throws Exception {
@@ -32,49 +39,73 @@ public class LogisticTest {
     @Test
     public void makeModel() throws Exception {
 
-        /*VWScalarLearner learn = VWLearners.create("--quiet --loss_function logistic --binary");
-        for (int j = 0; j < 5e4; ++j) {
-        learn.learn("-1 | number=2");
-        learn.learn("-1 | number=4");
-        learn.learn("-1 | number=6");
-        learn.learn("-1 | number=8");
-        learn.learn("1 | number=1");
-        learn.learn("1 | number=3");
-        learn.learn("1 | number=5");
-        learn.learn("1 | number=7");}
+        String csvFile = "/Users/laurenshin/documents/linreg-graph-analytics/src/test/resources/iris-full.csv";
+        String line = "";
+        String csvSplitBy = ",";
 
+        List<List<Double>> data = new ArrayList<>();
+        List<Integer> target = new ArrayList<>();
+        List<Integer> order = new ArrayList<>();
 
-        double exp = learn.predict("| number=5");
-        learn.close();
-        */
+        Map<String, Integer> stringToInt = new HashMap<>();
+        Map<Integer, String> intToString = new HashMap<>();
 
-        db.execute("CALL regression.logistic.create('model', {number:'class'}, 'type', 'odd', 'even')").close();
+        stringToInt.put("Iris-setosa", 0);
+        stringToInt.put("Iris-versicolor", 1);
+        stringToInt.put("Iris-virginica", 2);
+        intToString.put(0, "Iris-setosa");
+        intToString.put(1, "Iris-versicolor");
+        intToString.put(2, "Iris-virginica");
 
-        db.execute("CALL regression.logistic.add('model', {number:2}, 'even')").close();
-        db.execute("CALL regression.logistic.add('model', {number:4}, 'even')").close();
-        db.execute("CALL regression.logistic.add('model', {number:6}, 'even')").close();
-        db.execute("CALL regression.logistic.add('model', {number:8}, 'even')").close();
-        db.execute("CALL regression.logistic.add('model', {number:1}, 'odd')").close();
-        db.execute("CALL regression.logistic.add('model', {number:3}, 'odd')").close();
-        db.execute("CALL regression.logistic.add('model', {number:5}, 'odd')").close();
-        db.execute("CALL regression.logistic.add('model', {number:7}, 'odd')").close();
+        try (BufferedReader br = new BufferedReader(new FileReader(csvFile))){
+            br.readLine(); //skip headers
+            int i = 0;
+            while ((line = br.readLine()) != null) {
+                String[] flower = line.split(csvSplitBy);
+                List<Double> v = new ArrayList<>(4);
+                v.add(Double.parseDouble(flower[1])); //sepal length
+                v.add(Double.parseDouble(flower[2])); //sepal width
+                v.add(Double.parseDouble(flower[3])); //petal length
+                v.add(Double.parseDouble(flower[4])); //petal width
+                data.add(v);
+                target.add(stringToInt.get(flower[5])); //class
+                order.add(i++);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            Assert.fail("unable to read csv file for test data");
+        }
+        RandomUtils.useTestSeed();
+        Random random = RandomUtils.getRandom();
+        Collections.shuffle(order, random);
+        int cutoff = (int) Math.floor(order.size()*0.75);
+        List<Integer> train = order.subList(0, 100);
+        List<Integer> test = order.subList(100, 150);
 
-        String r = (String) db.execute("RETURN regression.logistic.predict('model', {number:2}, 0.0) as prediction").next().get("prediction");
-        assertTrue("Failure to predict '2': Expected: even, Actual: " + r, r.equals("even"));
-        r = (String) db.execute("RETURN regression.logistic.predict('model', {number:4}, 0.0) as prediction").next().get("prediction");
-        assertTrue("Failure to predict '4': Expected: even, Actual: " + r, r.equals("even"));
-        r = (String) db.execute("RETURN regression.logistic.predict('model', {number:6}, 0.0) as prediction").next().get("prediction");
-        assertTrue("Failure to predict '6': Expected: even, Actual: " + r, r.equals("even"));
-        r = (String) db.execute("RETURN regression.logistic.predict('model', {number:8}, 0.0) as prediction").next().get("prediction");
-        assertTrue("Failure to predict '8': Expected: even, Actual: " + r, r.equals("even"));
-        r = (String) db.execute("RETURN regression.logistic.predict('model', {number:1}, 0.0) as prediction").next().get("prediction");
-        assertTrue("Failure to predict '1': Expected: odd, Actual: " + r, r.equals("odd"));
-        r = (String) db.execute("RETURN regression.logistic.predict('model', {number:3}, 0.0) as prediction").next().get("prediction");
-        assertTrue("Failure to predict '3': Expected: odd, Actual: " + r, r.equals("odd"));
-        r = (String) db.execute("RETURN regression.logistic.predict('model', {number:5}, 0.0) as prediction").next().get("prediction");
-        assertTrue("Failure to predict '5': Expected: odd, Actual: " + r, r.equals("odd"));
-        r = (String) db.execute("RETURN regression.logistic.predict('model', {number:7}, 0.0) as prediction").next().get("prediction");
-        assertTrue("Failure to predict '7': Expected: odd, Actual: " + r, r.equals("odd"));
+        db.execute("CALL regression.logistic.create('model', 3, 4, true)").close();
+        for (int pass = 0; pass < 30; pass++) {
+            Collections.shuffle(train, random);
+            for (int j : train) {
+                db.execute("CALL regression.logistic.add('model', {inputs}, {output})", map("inputs", data.get(j), "output", target.get(j)));
+            }
+        }
+        int successes = 0;
+        int failures = 0;
+        for (int k : test) {
+            String t;
+            int guess = ((Long) db.execute("RETURN regression.logistic.predict('model', {inputs}) as prediction", map("inputs", data.get(k))).next().get("prediction")).intValue();
+            if (guess == target.get(k)) {
+                t = "SUCCESS!";
+                successes++;
+            } else {
+                t = "FAIL!";
+                failures++;
+            }
+            System.out.format("Actual: %s, Guess: %s %s%n", intToString.get(target.get(k)), intToString.get(guess), t);
+        }
+        System.out.format("SUCCESSES: %d%n", successes);
+        System.out.format("FAILURES: %d%n", failures);
+
 
         db.execute("CALL regression.logistic.delete('model')");
     }

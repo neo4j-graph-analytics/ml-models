@@ -5,7 +5,7 @@
 
     <groupId>org.neo4j.procedures</groupId>
     <artifactId>neo4j-ml-models</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
 
     <packaging>jar</packaging>
     <name>Neo4j ML Models</name>
@@ -13,7 +13,6 @@
     <properties>
         <encoding>UTF-8</encoding>
         <java.version>1.8</java.version>
-        <java.library.path>plugins</java.library.path>
         <project.build.sourceEncoding>${encoding}</project.build.sourceEncoding>
         <project.reporting.outputEncoding>${encoding}</project.reporting.outputEncoding>
         <maven.compiler.source>${java.version}</maven.compiler.source>
@@ -24,8 +23,8 @@
     <dependencies>
         <dependency>
             <groupId>org.apache.mahout</groupId>
-            <artifactId>mahout-core</artifactId>
-            <version>0.9</version>
+            <artifactId>mahout-mr</artifactId>
+            <version>0.13.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>

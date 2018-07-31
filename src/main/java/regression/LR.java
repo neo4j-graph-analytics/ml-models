@@ -8,6 +8,7 @@ import java.io.*;
 import java.util.*;
 import java.util.stream.Stream;
 import org.apache.commons.math3.util.MathArrays;
+import org.apache.commons.math3.stat.correlation.PearsonsCorrelation;
 
 public class LR {
     @Context
@@ -34,6 +35,14 @@ public class LR {
         for (int i = 0; i < k; i++) subset.add(i, data.get(index[i]));
 
         return subset;
+    }
+
+    @UserFunction(value = "regression.linear.correlation")
+    @Description("Calculate Pearson's correlation coefficient between first and second data lists")
+    public double correlation(@Name("first") List<Double> first, @Name("second") List<Double> second) {
+        double[] firstArray = doubleListToArray(first);
+        double[] secondArray = doubleListToArray(second);
+        return new PearsonsCorrelation().correlation(firstArray, secondArray);
     }
 
     @Procedure(value = "regression.linear.create", mode = Mode.READ)
@@ -211,15 +220,6 @@ public class LR {
     static double[] doubleListToArray(List<Double> list) {
         int len = list.size();
         double[] array = new double[len];
-        for (int i = 0; i < len; i++) {
-            array[i] = list.get(i);
-        }
-        return array;
-    }
-
-    static int[] intListToArray(List<Integer> list) {
-        int len = list.size();
-        int[] array = new int[len];
         for (int i = 0; i < len; i++) {
             array[i] = list.get(i);
         }

@@ -40,7 +40,7 @@ public class DeepWalkProc {
     @Context
     public KernelTransaction transaction;
 
-    @Procedure(value = "embedding.deepWalk2", mode = Mode.WRITE)
+    @Procedure(value = "embedding.deepWalk", mode = Mode.WRITE)
     @Description("CALL embedding.deepWalk(label:String, relationship:String, " +
             "{graph: 'heavy/cypher', vectorSize:10, windowSize:2, learningRate:0.01 concurrency:4, direction:'BOTH}) " +
             "YIELD nodes, iterations, loadMillis, computeMillis, writeMillis, dampingFactor, write, writeProperty" +
@@ -81,8 +81,8 @@ public class DeepWalkProc {
     }
 
 
-    @Procedure(name = "embedding.deepWalk2.stream", mode = Mode.READ)
-    @Description("CALL embedding.deepWalk2.stream(label:String, relationship:String, {graph: 'heavy/cypher', walkLength:10, vectorSize:10, windowSize:2, learningRate:0.01 concurrency:4, direction:'BOTH'}) " +
+    @Procedure(name = "embedding.deepWalk.stream", mode = Mode.READ)
+    @Description("CALL embedding.deepWalk.stream(label:String, relationship:String, {graph: 'heavy/cypher', walkLength:10, vectorSize:10, windowSize:2, learningRate:0.01 concurrency:4, direction:'BOTH'}) " +
             "YIELD nodeId, embedding - compute embeddings for each node")
     public Stream<DeepWalkResult> deepWalkStream2(
             @Name(value = "label", defaultValue = "") String label,
@@ -166,8 +166,8 @@ public class DeepWalkProc {
     }
 
 
-    @Procedure(value = "embedding.deepWalk", mode = Mode.WRITE)
-    @Description("CALL embedding.deepWalk(label:String, relationship:String, " +
+    @Procedure(value = "embedding.dl4j.deepWalk", mode = Mode.WRITE)
+    @Description("CALL embedding.dl4j.deepWalk(label:String, relationship:String, " +
             "{graph: 'heavy/cypher', vectorSize:10, windowSize:2, learningRate:0.01 concurrency:4, direction:'BOTH}) " +
             "YIELD nodes, iterations, loadMillis, computeMillis, writeMillis, dampingFactor, write, writeProperty" +
             " - calculates page rank and potentially writes back")
@@ -208,8 +208,8 @@ public class DeepWalkProc {
     }
 
 
-    @Procedure(name = "embedding.deepWalk.stream", mode = Mode.READ)
-    @Description("CALL embedding.deepWalk.stream(label:String, relationship:String, {graph: 'heavy/cypher', walkLength:10, vectorSize:10, windowSize:2, learningRate:0.01 concurrency:4, direction:'BOTH'}) " +
+    @Procedure(name = "embedding.dl4j.deepWalk.stream", mode = Mode.READ)
+    @Description("CALL embedding.dl4j.deepWalk.stream(label:String, relationship:String, {graph: 'heavy/cypher', walkLength:10, vectorSize:10, windowSize:2, learningRate:0.01 concurrency:4, direction:'BOTH'}) " +
             "YIELD nodeId, embedding - compute embeddings for each node")
     public Stream<DeepWalkResult> deepWalkStream(
             @Name(value = "label", defaultValue = "") String label,
@@ -297,7 +297,6 @@ public class DeepWalkProc {
             AllocationTracker tracker,
             Class<? extends GraphFactory> graphFactory,
             PageRankScore.Stats.Builder statsBuilder, ProcedureConfiguration configuration) {
-
         GraphLoader graphLoader = new GraphLoader(api, Pools.DEFAULT)
                 .init(log, label, relationship, configuration)
                 .withAllocationTracker(tracker)

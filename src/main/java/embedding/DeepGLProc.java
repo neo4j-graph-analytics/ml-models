@@ -38,7 +38,7 @@ public class DeepGLProc {
     @Context
     public KernelTransaction transaction;
 
-    @Procedure(value = "algo.deepgl", mode = Mode.WRITE)
+    @Procedure(value = "embedding.deepgl", mode = Mode.WRITE)
     public Stream<DeepGLProcResult> deepGL(
             @Name(value = "label", defaultValue = "") String label,
             @Name(value = "relationship", defaultValue = "") String relationship,
@@ -99,7 +99,7 @@ public class DeepGLProc {
         return Stream.of(builder.build());
     }
 
-    @Procedure(value = "algo.deepgl.stream")
+    @Procedure(value = "embedding.deepgl.stream")
     public Stream<DeepGL.Result> deepGLStream(
             @Name(value = "label", defaultValue = "") String label,
             @Name(value = "relationship", defaultValue = "") String relationship,

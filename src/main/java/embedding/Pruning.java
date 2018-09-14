@@ -76,7 +76,7 @@ public class Pruning {
 
     private Stream<DisjointSetStruct.Result> findConnectedComponents(Graph graph) {
         GraphUnionFind algo = new GraphUnionFind(graph);
-        DisjointSetStruct struct = algo.compute(lambda);
+        DisjointSetStruct struct = algo.compute();
         algo.release();
         DSSResult dssResult = new DSSResult(struct);
         return dssResult.resultStream(graph);
@@ -85,7 +85,7 @@ public class Pruning {
     private Graph loadFeaturesGraph(INDArray embedding, int numPrevFeatures) {
         int nodeCount = embedding.columns();
 
-        progressLogger.log("Creating IdMap");
+        progressLogger.log("Creating IdMap - " + nodeCount + " nodes");
         IdMap idMap = new IdMap(nodeCount);
 
         for (int i = 0; i < nodeCount; i++) {
@@ -109,8 +109,11 @@ public class Pruning {
 
                 double score = score(emb1, emb2);
                 comparisons++;
-                matrix.addOutgoing(idMap.get(i), idMap.get(j));
-                relWeights.put(RawValues.combineIntInt(idMap.get(i), idMap.get(j)), score);
+
+                if(score > lambda) {
+                    matrix.addOutgoing(idMap.get(i), idMap.get(j));
+//                    relWeights.put(RawValues.combineIntInt(idMap.get(i), idMap.get(j)), score);
+                }
             }
         }
         progressLogger.log("Created Adjacency Matrix");

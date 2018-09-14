@@ -158,6 +158,7 @@ public class DeepGL extends Algorithm<DeepGL> {
             HashSet<Pruning.Feature> prevFeaturesSet = new HashSet<>(Arrays.asList(this.prevFeatures));
 
             uniqueFeaturesSet.removeAll(prevFeaturesSet);
+            logger.log("Unique features this iteration: " + uniqueFeaturesSet.size());
             if (uniqueFeaturesSet.size() == 0) {
                 embedding = prevEmbedding;
                 features = prevFeatures;

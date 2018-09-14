@@ -22,7 +22,7 @@ import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.*;
-import org.neo4j.values.storable.INDArrayPropertyTranslator;
+import org.neo4j.values.storable.DeepWalkPropertyTranslator;
 import org.neo4j.values.storable.LookupTablePropertyTranslator;
 
 import java.util.*;
@@ -199,7 +199,7 @@ public class DeepWalkProc {
                     .write(
                             writeProperty,
                             dw,
-                            new INDArrayPropertyTranslator()
+                            new DeepWalkPropertyTranslator()
                     )
             );
         }

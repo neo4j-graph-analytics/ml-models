@@ -107,6 +107,7 @@ public class Pruning {
 
         int[] degrees = new int[nodeCount];
 
+        progressLogger.log("Calculating degree distribution");
         for (int i = numPrevFeatures; i < nodeCount; i++) {
             for (int j = 0; j < i; j++) {
                 INDArray emb1 = embedding.getColumn(i);
@@ -128,6 +129,7 @@ public class Pruning {
         }
         progressLogger.log(allocationTracker.getUsageString());
 
+        progressLogger.log("Populating adjacency matrix");
         for (int i = numPrevFeatures; i < nodeCount; i++) {
             for (int j = 0; j < i; j++) {
                 INDArray emb1 = embedding.getColumn(i);
@@ -141,7 +143,7 @@ public class Pruning {
                 }
             }
         }
-        progressLogger.log(allocationTracker.getUsageString());
+        progressLogger.log("Populated adjacency matrix");
         progressLogger.log("Created Adjacency Matrix");
         progressLogger.log("Number of comparisons: " + comparisons);
 

@@ -95,13 +95,39 @@ public class Pruning {
         progressLogger.log("Created IdMap");
 
         WeightMap relWeights = new WeightMap(nodeCount, 0, -1);
-        AdjacencyMatrix matrix = new AdjacencyMatrix(idMap.size(), false, AllocationTracker.EMPTY);
+        AllocationTracker allocationTracker = AllocationTracker.create();
+        AdjacencyMatrix matrix = new AdjacencyMatrix(idMap.size(), false, allocationTracker);
+        progressLogger.log(allocationTracker.getUsageString());
 
         int comparisons = 0;
 
         progressLogger.log("Size of combined embedding: " + Arrays.toString(embedding.shape()));
         progressLogger.log("Number of prev features: " + numPrevFeatures);
         progressLogger.log("Creating AdjacencyMatrix");
+
+        int[] degrees = new int[nodeCount];
+
+        for (int i = numPrevFeatures; i < nodeCount; i++) {
+            for (int j = 0; j < i; j++) {
+                INDArray emb1 = embedding.getColumn(i);
+                INDArray emb2 = embedding.getColumn(j);
+
+                double score = score(emb1, emb2);
+
+                if(score > lambda) {
+                    degrees[idMap.get(i)]++;
+                }
+            }
+        }
+        progressLogger.log("Calculated degree distribution");
+
+        for (int i = 0; i < degrees.length; i++) {
+            int degree = degrees[i];
+            matrix.armOut(idMap.get(i), degree);
+
+        }
+        progressLogger.log(allocationTracker.getUsageString());
+
         for (int i = numPrevFeatures; i < nodeCount; i++) {
             for (int j = 0; j < i; j++) {
                 INDArray emb1 = embedding.getColumn(i);
@@ -112,10 +138,10 @@ public class Pruning {
 
                 if(score > lambda) {
                     matrix.addOutgoing(idMap.get(i), idMap.get(j));
-//                    relWeights.put(RawValues.combineIntInt(idMap.get(i), idMap.get(j)), score);
                 }
             }
         }
+        progressLogger.log(allocationTracker.getUsageString());
         progressLogger.log("Created Adjacency Matrix");
         progressLogger.log("Number of comparisons: " + comparisons);
 

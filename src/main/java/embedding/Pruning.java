@@ -83,6 +83,7 @@ public class Pruning {
     }
 
     private Graph loadFeaturesGraph(INDArray embedding, int numPrevFeatures) {
+        AllocationTracker allocationTracker = AllocationTracker.create();
         int nodeCount = embedding.columns();
 
         progressLogger.log("Creating IdMap - " + nodeCount + " nodes");
@@ -91,13 +92,13 @@ public class Pruning {
         for (int i = 0; i < nodeCount; i++) {
             idMap.add(i);
         }
-        idMap.buildMappedIds();
+        idMap.buildMappedIds(allocationTracker);
         progressLogger.log("Created IdMap");
+        progressLogger.log("Allocation: " + allocationTracker.getUsageString());
 
         WeightMap relWeights = new WeightMap(nodeCount, 0, -1);
-        AllocationTracker allocationTracker = AllocationTracker.create();
         AdjacencyMatrix matrix = new AdjacencyMatrix(idMap.size(), false, allocationTracker);
-        progressLogger.log(allocationTracker.getUsageString());
+        progressLogger.log("Allocation: " + allocationTracker.getUsageString());
 
 
         progressLogger.log("Size of combined embedding: " + Arrays.toString(embedding.shape()));
@@ -136,7 +137,7 @@ public class Pruning {
             matrix.armOut(idMap.get(i), degree);
 
         }
-        progressLogger.log(allocationTracker.getUsageString());
+        progressLogger.log("Allocation: " + allocationTracker.getUsageString());
 
         progressLogger.log("Populating adjacency matrix");
         for (int i = numPrevFeatures; i < nodeCount; i++) {

@@ -99,28 +99,37 @@ public class Pruning {
         AdjacencyMatrix matrix = new AdjacencyMatrix(idMap.size(), false, allocationTracker);
         progressLogger.log(allocationTracker.getUsageString());
 
-        int comparisons = 0;
 
         progressLogger.log("Size of combined embedding: " + Arrays.toString(embedding.shape()));
         progressLogger.log("Number of prev features: " + numPrevFeatures);
         progressLogger.log("Creating AdjacencyMatrix");
 
-        int[] degrees = new int[nodeCount];
+        progressLogger.log("Adding columns to array");
 
+        progressLogger.log("Added columns to array");
+
+//        INDArray reusedArray = Nd4j.zeros(1, embedding.rows());
+//        int size = reusedArray.size(0);
+
+        int[] degrees = new int[nodeCount];
+        int comparisons = 0;
         progressLogger.log("Calculating degree distribution");
         for (int i = numPrevFeatures; i < nodeCount; i++) {
             for (int j = 0; j < i; j++) {
                 INDArray emb1 = embedding.getColumn(i);
                 INDArray emb2 = embedding.getColumn(j);
 
-                double score = score(emb1, emb2);
+//                double score = score(emb1, emb2);
+//                double score = score(reusedArray, emb1, emb2, size);
+                double score = score(emb1.dup(), emb2, emb1.size(0));
+                comparisons++;
 
                 if(score > lambda) {
                     degrees[idMap.get(i)]++;
                 }
             }
         }
-        progressLogger.log("Calculated degree distribution");
+        progressLogger.log("Calculated degree distribution (" + comparisons + " comparisons)");
 
         for (int i = 0; i < degrees.length; i++) {
             int degree = degrees[i];
@@ -135,7 +144,9 @@ public class Pruning {
                 INDArray emb1 = embedding.getColumn(i);
                 INDArray emb2 = embedding.getColumn(j);
 
-                double score = score(emb1, emb2);
+//                double score = score(emb1, emb2);
+//                double score = score(reusedArray, emb1, emb2, size);
+                double score = score(emb1.dup(), emb2, emb1.size(0));
                 comparisons++;
 
                 if(score > lambda) {
@@ -203,6 +214,16 @@ public class Pruning {
     double score(INDArray feat1, INDArray feat2) {
         return feat1.eq(feat2).sum(0).getDouble(0,0) / feat1.size(0);
     }
+
+    double score(INDArray feat1, INDArray feat2, int size) {
+        return feat1.eqi(feat2).sum(0).getDouble(0,0) / feat1.size(0);
+    }
+
+    double score(INDArray reusedArray, INDArray feat1, INDArray feat2, int size) {
+        return reusedArray.assign(feat1).eqi(feat2).sum(0).getDouble(0,0) / size;
+//        return feat1.eq(feat2).sum(0).getDouble(0,0) / feat1.size(0);
+    }
+
 
 
 }

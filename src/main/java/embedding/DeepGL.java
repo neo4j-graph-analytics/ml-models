@@ -151,7 +151,10 @@ public class DeepGL extends Algorithm<DeepGL> {
             diffuse(featuresList);
             logger.log("Diffused features");
 
+            logger.log("Bin features");
             doBinning();
+            logger.log("Binned features");
+
             doPruning();
 
             HashSet<Pruning.Feature> uniqueFeaturesSet = new HashSet<>(Arrays.asList(this.features));

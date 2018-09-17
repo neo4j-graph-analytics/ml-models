@@ -92,12 +92,12 @@ public class Pruning {
         for (int i = 0; i < nodeCount; i++) {
             idMap.add(i);
         }
-        idMap.buildMappedIds(allocationTracker);
+        idMap.buildMappedIds();
         progressLogger.log("Created IdMap");
         progressLogger.log("Allocation: " + allocationTracker.getUsageString());
 
         WeightMap relWeights = new WeightMap(nodeCount, 0, -1);
-        AdjacencyMatrix matrix = new AdjacencyMatrix(idMap.size(), false, allocationTracker);
+        AdjacencyMatrix matrix = new AdjacencyMatrix(idMap.size(), false);
         progressLogger.log("Allocation: " + allocationTracker.getUsageString());
 
 

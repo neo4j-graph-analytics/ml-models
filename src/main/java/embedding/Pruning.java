@@ -97,7 +97,7 @@ public class Pruning {
         progressLogger.log("Allocation: " + allocationTracker.getUsageString());
 
         WeightMap relWeights = new WeightMap(nodeCount, 0, -1);
-        AdjacencyMatrix matrix = new AdjacencyMatrix(idMap.size(), false);
+        AdjacencyMatrix matrix = new AdjacencyMatrix(idMap.size(), false, allocationTracker);
         progressLogger.log("Allocation: " + allocationTracker.getUsageString());
 
 

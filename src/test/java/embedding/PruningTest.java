@@ -125,7 +125,7 @@ public class PruningTest {
 
         idMap.buildMappedIds();
 
-        AdjacencyMatrix matrix = new AdjacencyMatrix(idMap.size(), false);
+        AdjacencyMatrix matrix = new AdjacencyMatrix(idMap.size(), false, AllocationTracker.EMPTY);
         matrix.addOutgoing(idMap.get(0), idMap.get(10));
         matrix.addOutgoing(idMap.get(2), idMap.get(12));
         matrix.addOutgoing(idMap.get(2), idMap.get(16));

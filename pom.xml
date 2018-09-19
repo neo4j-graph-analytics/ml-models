@@ -18,7 +18,7 @@
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <neo4j.version>3.4.7</neo4j.version>
-        <neo4j.graphalgos.version>3.4.4.0</neo4j.graphalgos.version>
+        <neo4j.graphalgos.version>3.4.7.0</neo4j.graphalgos.version>
     </properties>
 
     <dependencies>

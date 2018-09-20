@@ -67,6 +67,16 @@ public class DeepGLIntegrationTest {
     }
 
     @Test
+    public void removeInnerLoopInPruning() throws Exception {
+
+        Result result = db.execute("CALL embedding.deepgl('Node', 'TYPE', {pruningLambda: 0.8, iterations: 3})");
+
+        while (result.hasNext()) {
+            System.out.println("result.next() = " + result.next());
+        }
+    }
+
+    @Test
     public void write() throws Exception {
 
         String writeProperty = "'foo'";

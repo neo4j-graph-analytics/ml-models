@@ -3,6 +3,9 @@ package embedding;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.time.StopWatch;
+import org.nd4j.linalg.api.memory.MemoryWorkspace;
+import org.nd4j.linalg.api.memory.conf.WorkspaceConfiguration;
+import org.nd4j.linalg.api.memory.enums.LocationPolicy;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.factory.Nd4j;
 import org.neo4j.graphalgo.api.Graph;
@@ -162,6 +165,11 @@ public class Pruning {
 //        progressLogger.log("Populated adjacency matrix (orig): "  + timer.getTime() + " ms");
 //        progressLogger.log("Number of comparisons: " + comparisons);
 
+        WorkspaceConfiguration mmap = WorkspaceConfiguration.builder()
+                .initialSize(1000000000)
+                .build();
+
+
         timer.reset();
         timer.start();
         progressLogger.log("Populating adjacency matrix 2");
@@ -169,15 +177,18 @@ public class Pruning {
         final double newLambda = embedding.rows() * lambda;
         INDArray sub;
         for (int i = numPrevFeatures; i < embedding.columns(); i++) {
-            final INDArray dup = embedding.dup();
-            sub = dup.subiColumnVector(embedding.getColumn(i));
-            final int[] total = sub.eqi(zeros).sum(0).toIntVector();
-            dup.cleanup();
-            for (int j = 0; j < i; j++) {
-                final int score = total[j];
-                if(score > newLambda) {
-                    matrix.addOutgoing(idMap.get(i), idMap.get(j));
+            try (MemoryWorkspace ws = Nd4j.getWorkspaceManager().getAndActivateWorkspace(mmap, "M2")) {
+                final INDArray dup = embedding.dup();
+                sub = dup.subiColumnVector(embedding.getColumn(i));
+                final int[] total = sub.eqi(zeros).sum(0).toIntVector();
+                dup.cleanup();
+                for (int j = 0; j < i; j++) {
+                    final int score = total[j];
+                    if (score > newLambda) {
+                        matrix.addOutgoing(idMap.get(i), idMap.get(j));
+                    }
                 }
+//                Nd4j.getMemoryManager().invokeGc();
             }
         }
         timer.stop();

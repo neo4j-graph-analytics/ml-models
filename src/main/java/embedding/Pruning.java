@@ -5,6 +5,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.factory.Nd4j;
+import org.nd4j.linalg.ops.transforms.Transforms;
 import org.neo4j.graphalgo.api.Graph;
 import org.neo4j.graphalgo.core.IdMap;
 import org.neo4j.graphalgo.core.WeightMap;
@@ -165,23 +166,29 @@ public class Pruning {
         timer.reset();
         timer.start();
         progressLogger.log("Populating adjacency matrix 2");
-        final INDArray zeros = Nd4j.zeros(embedding.shape());
-        final double newLambda = embedding.rows() * lambda;
-        INDArray sub;
+        final INDArray transpose = embedding.transpose();
+        final INDArray zeros = Nd4j.zerosLike(transpose);
+        final double newLambda = transpose.columns() * lambda;
+        final INDArray temp = Nd4j.zerosLike(transpose);
         for (int i = numPrevFeatures; i < embedding.columns(); i++) {
-            final INDArray dup = embedding.dup();
-            sub = dup.subiColumnVector(embedding.getColumn(i));
-            final int[] total = sub.eqi(zeros).sum(0).toIntVector();
-            dup.cleanup();
+            Nd4j.copy(transpose, temp);
+            final int[] total =
+                    temp.subiRowVector(transpose.getRow(i))
+                            .eqi(zeros)
+                            .sum(1)
+                            .toIntVector();
             for (int j = 0; j < i; j++) {
                 final int score = total[j];
-                if(score > newLambda) {
+                if (score > newLambda) {
                     matrix.addOutgoing(idMap.get(i), idMap.get(j));
                 }
             }
         }
+        transpose.cleanup();
+        zeros.cleanup();
+        temp.cleanup();
         timer.stop();
-        progressLogger.log("Populated adjacency matrix (new): "  + timer.getTime() + " ms");
+        progressLogger.log("Populated adjacency matrix (new): " + timer.getTime() + " ms");
         progressLogger.log("Created Adjacency Matrix");
 
         return new HeavyGraph(idMap, matrix, relWeights, null);
@@ -239,18 +246,17 @@ public class Pruning {
 
     double score(INDArray feat1, INDArray feat2) {
 //                return feat1.eqi(feat2).sum(0).divi(feat1.size(0)).getDouble(0);
-        return feat1.eq(feat2).sum(0).getDouble(0,0) / feat1.size(0);
+        return feat1.eq(feat2).sum(0).getDouble(0, 0) / feat1.size(0);
     }
 
     double score(INDArray feat1, INDArray feat2, int size) {
-        return feat1.eqi(feat2).sum(0).getDouble(0,0) / feat1.size(0);
+        return feat1.eqi(feat2).sum(0).getDouble(0, 0) / feat1.size(0);
     }
 
     double score(INDArray reusedArray, INDArray feat1, INDArray feat2, int size) {
-        return reusedArray.assign(feat1).eqi(feat2).sum(0).getDouble(0,0) / size;
+        return reusedArray.assign(feat1).eqi(feat2).sum(0).getDouble(0, 0) / size;
 //        return feat1.eq(feat2).sum(0).getDouble(0,0) / feat1.size(0);
     }
-
 
 
 }

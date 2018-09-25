@@ -2,8 +2,10 @@ package embedding;
 
 
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.time.StopWatch;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.factory.Nd4j;
+import org.nd4j.linalg.ops.transforms.Transforms;
 import org.neo4j.graphalgo.api.Graph;
 import org.neo4j.graphalgo.core.IdMap;
 import org.neo4j.graphalgo.core.WeightMap;
@@ -112,52 +114,82 @@ public class Pruning {
 //        INDArray reusedArray = Nd4j.zeros(1, embedding.rows());
 //        int size = reusedArray.size(0);
 
-        int[] degrees = new int[nodeCount];
+//        int[] degrees = new int[nodeCount];
         int comparisons = 0;
-        progressLogger.log("Calculating degree distribution");
-        for (int i = numPrevFeatures; i < nodeCount; i++) {
+//        progressLogger.log("Calculating degree distribution");
+//        for (int i = numPrevFeatures; i < nodeCount; i++) {
+//            for (int j = 0; j < i; j++) {
+//                INDArray emb1 = embedding.getColumn(i);
+//                INDArray emb2 = embedding.getColumn(j);
+//
+////                double score = score(emb1, emb2);
+////                double score = score(reusedArray, emb1, emb2, size);
+//                double score = score(emb1.dup(), emb2, emb1.size(0));
+//                comparisons++;
+//
+//                if(score > lambda) {
+//                    degrees[idMap.get(i)]++;
+//                }
+//            }
+//        }
+//        progressLogger.log("Calculated degree distribution (" + comparisons + " comparisons)");
+//
+//        for (int i = 0; i < degrees.length; i++) {
+//            int degree = degrees[i];
+//            matrix.armOut(idMap.get(i), degree);
+//
+//        }
+//        progressLogger.log("Allocation: " + allocationTracker.getUsageString());
+//
+        StopWatch timer = new StopWatch();
+        timer.start();
+//        progressLogger.log("Populating adjacency matrix 1");
+//        for (int i = numPrevFeatures; i < nodeCount; i++) {
+//            for (int j = 0; j < i; j++) {
+//                INDArray emb1 = embedding.getColumn(i);
+//                INDArray emb2 = embedding.getColumn(j);
+//
+////                double score = score(emb1, emb2);
+////                double score = score(reusedArray, emb1, emb2, size);
+//                double score = score(emb1.dup(), emb2, emb1.size(0));
+//                comparisons++;
+//
+//                if(score > lambda) {
+//                    matrix.addOutgoing(idMap.get(i), idMap.get(j));
+//                }
+//            }
+//        }
+//        timer.stop();
+//        progressLogger.log("Populated adjacency matrix (orig): "  + timer.getTime() + " ms");
+//        progressLogger.log("Number of comparisons: " + comparisons);
+
+        timer.reset();
+        timer.start();
+        progressLogger.log("Populating adjacency matrix 2");
+        final INDArray transpose = embedding.transpose();
+        final INDArray zeros = Nd4j.zerosLike(transpose);
+        final double newLambda = transpose.columns() * lambda;
+        final INDArray temp = Nd4j.zerosLike(transpose);
+        for (int i = numPrevFeatures; i < embedding.columns(); i++) {
+            Nd4j.copy(transpose, temp);
+            final int[] total =
+                    temp.subiRowVector(transpose.getRow(i))
+                            .eqi(zeros)
+                            .sum(1)
+                            .toIntVector();
             for (int j = 0; j < i; j++) {
-                INDArray emb1 = embedding.getColumn(i);
-                INDArray emb2 = embedding.getColumn(j);
-
-//                double score = score(emb1, emb2);
-//                double score = score(reusedArray, emb1, emb2, size);
-                double score = score(emb1.dup(), emb2, emb1.size(0));
-                comparisons++;
-
-                if(score > lambda) {
-                    degrees[idMap.get(i)]++;
-                }
-            }
-        }
-        progressLogger.log("Calculated degree distribution (" + comparisons + " comparisons)");
-
-        for (int i = 0; i < degrees.length; i++) {
-            int degree = degrees[i];
-            matrix.armOut(idMap.get(i), degree);
-
-        }
-        progressLogger.log("Allocation: " + allocationTracker.getUsageString());
-
-        progressLogger.log("Populating adjacency matrix");
-        for (int i = numPrevFeatures; i < nodeCount; i++) {
-            for (int j = 0; j < i; j++) {
-                INDArray emb1 = embedding.getColumn(i);
-                INDArray emb2 = embedding.getColumn(j);
-
-//                double score = score(emb1, emb2);
-//                double score = score(reusedArray, emb1, emb2, size);
-                double score = score(emb1.dup(), emb2, emb1.size(0));
-                comparisons++;
-
-                if(score > lambda) {
+                final int score = total[j];
+                if (score > newLambda) {
                     matrix.addOutgoing(idMap.get(i), idMap.get(j));
                 }
             }
         }
-        progressLogger.log("Populated adjacency matrix");
+        transpose.cleanup();
+        zeros.cleanup();
+        temp.cleanup();
+        timer.stop();
+        progressLogger.log("Populated adjacency matrix (new): " + timer.getTime() + " ms");
         progressLogger.log("Created Adjacency Matrix");
-        progressLogger.log("Number of comparisons: " + comparisons);
 
         return new HeavyGraph(idMap, matrix, relWeights, null);
     }
@@ -213,18 +245,18 @@ public class Pruning {
     }
 
     double score(INDArray feat1, INDArray feat2) {
-        return feat1.eq(feat2).sum(0).getDouble(0,0) / feat1.size(0);
+//                return feat1.eqi(feat2).sum(0).divi(feat1.size(0)).getDouble(0);
+        return feat1.eq(feat2).sum(0).getDouble(0, 0) / feat1.size(0);
     }
 
     double score(INDArray feat1, INDArray feat2, int size) {
-        return feat1.eqi(feat2).sum(0).getDouble(0,0) / feat1.size(0);
+        return feat1.eqi(feat2).sum(0).getDouble(0, 0) / feat1.size(0);
     }
 
     double score(INDArray reusedArray, INDArray feat1, INDArray feat2, int size) {
-        return reusedArray.assign(feat1).eqi(feat2).sum(0).getDouble(0,0) / size;
+        return reusedArray.assign(feat1).eqi(feat2).sum(0).getDouble(0, 0) / size;
 //        return feat1.eq(feat2).sum(0).getDouble(0,0) / feat1.size(0);
     }
-
 
 
 }

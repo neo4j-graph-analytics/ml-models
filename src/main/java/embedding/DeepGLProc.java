@@ -48,7 +48,7 @@ public class DeepGLProc {
 
         int iterations = configuration.getInt("iterations", 10);
         int diffusions = configuration.getInt("diffusions", 10);
-        double pruningLambda = configuration.get("pruningLambda", 0.1);
+        double pruningLambda = configuration.get("pruningLambda", 0.7);
 
         final DeepGLProcResult.Builder builder = DeepGLProcResult.builder();
 

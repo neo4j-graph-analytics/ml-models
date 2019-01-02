@@ -5,7 +5,7 @@
 
     <groupId>org.neo4j.procedures</groupId>
     <artifactId>neo4j-ml-models</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
 
     <packaging>jar</packaging>
     <name>Neo4j ML Models</name>

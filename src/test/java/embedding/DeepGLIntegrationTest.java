@@ -59,7 +59,7 @@ public class DeepGLIntegrationTest {
     @Test
     public void stream() throws Exception {
 
-        Result result = db.execute("CALL algo.deepgl.stream('Node', 'TYPE')");
+        Result result = db.execute("CALL embedding.deepgl.stream('Node', 'TYPE')");
 
         while (result.hasNext()) {
             System.out.println("result.next() = " + result.next());
@@ -80,7 +80,7 @@ public class DeepGLIntegrationTest {
     public void write() throws Exception {
 
         String writeProperty = "'foo'";
-        Result result = db.execute("CALL algo.deepgl('Node', 'TYPE', {writeProperty: " + writeProperty + ", nodeFeatures:['prop1']})");
+        Result result = db.execute("CALL embedding.deepgl('Node', 'TYPE', {writeProperty: " + writeProperty + ", nodeFeatures:['prop1']})");
 
         while (result.hasNext()) {
             System.out.println("summary = " + result.next());
